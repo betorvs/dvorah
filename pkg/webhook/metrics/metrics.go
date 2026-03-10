@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-const name = "github.com/firebolt-db/firebolt-auror"
+const name = "github.com/betorvs/dvorah"
 
 var m *metrics
 

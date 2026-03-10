@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/firebolt-db/firebolt-auror/pkg/webhook/cache"
-	"github.com/firebolt-db/firebolt-auror/pkg/webhook/cosign"
-	"github.com/firebolt-db/firebolt-auror/pkg/webhook/metrics"
+	"github.com/betorvs/dvorah/pkg/webhook/cache"
+	"github.com/betorvs/dvorah/pkg/webhook/cosign"
+	"github.com/betorvs/dvorah/pkg/webhook/metrics"
 
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,7 +48,7 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 	v.logger.Debug("Successfully parsed admission review")
 	v.logger.Debug("Processing admission request", "uid", admissionReview.Request.UID, "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind)
 
-	if admissionReview.Request.Namespace == "firebolt-auror" && admissionReview.Request.Name == "webhook" {
+	if admissionReview.Request.Namespace == "dvorah" && admissionReview.Request.Name == "webhook" {
 		v.logger.Debug("Skipping signature verification for webhook's own pod")
 		v.sendResponse(w, &admissionReview, true, "Skipping signature verification for webhook's own pod")
 		return
