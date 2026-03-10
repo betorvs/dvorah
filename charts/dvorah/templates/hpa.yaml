@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "auror.fullname" . }}
+  name: {{ include "dvorah.fullname" . }}
   labels:
-    {{- include "auror.labels" . | nindent 4 }}
+    {{- include "dvorah.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "auror.fullname" . }}
+    name: {{ include "dvorah.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:

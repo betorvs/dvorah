@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 CREDS=$(aws configure export-credentials)
-namespace="firebolt-auror"
+namespace="dvorah"
 # Replace with your ECR registry address
 accountID="123456789123"
 PASSWORD=$(aws ecr get-login-password --region us-east-1)
@@ -34,10 +34,10 @@ kubectl create secret docker-registry pullsecret --docker-server=${accountID}.dk
     --namespace=${namespace} \
     --dry-run=client -o yaml > secret-docker.yaml
 
-openssl req -newkey rsa:2048 -nodes -keyout tlsAuror.key -x509 -days 365 -out tlsAuror.crt -subj "/CN=auror.firebolt-auror.svc" -addext "subjectAltName=DNS:auror.firebolt-auror.svc,DNS:auror.firebolt-auror.svc.local,DNS:auror.firebolt-auror.svc.cluster.local"
-kubectl create secret tls auror-certificates --cert=tlsAuror.crt --key=tlsAuror.key -n ${namespace} --dry-run=client -o yaml > secret-auror.yaml
+openssl req -newkey rsa:2048 -nodes -keyout tls.key -x509 -days 365 -out tls.crt -subj "/CN=dvorah.dvorah.svc" -addext "subjectAltName=DNS:dvorah.dvorah.svc,DNS:dvorah.dvorah.svc.local,DNS:dvorah.dvorah.svc.cluster.local"
+kubectl create secret tls dvorah-certificates --cert=tls.crt --key=tls.key -n ${namespace} --dry-run=client -o yaml > secret-dvorah.yaml
 
-kubectl apply -f secret-auror.yaml -n ${namespace}
+kubectl apply -f secret-dvorah.yaml -n ${namespace}
 kubectl apply -f secret-aws.yaml -n ${namespace}
 kubectl apply -f secret-docker.yaml -n ${namespace}
 

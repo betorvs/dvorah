@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "auror.fullname" . }}
+  name: {{ include "dvorah.fullname" . }}
   labels:
-    {{- include "auror.labels" . | nindent 4 }}
+    {{- include "dvorah.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -16,4 +16,4 @@ spec:
       protocol: TCP
       name: metrics
   selector:
-    {{- include "auror.selectorLabels" . | nindent 4 }}
+    {{- include "dvorah.selectorLabels" . | nindent 4 }}

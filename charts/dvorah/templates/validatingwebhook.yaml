@@ -3,18 +3,18 @@
 kind: ValidatingWebhookConfiguration
 apiVersion: admissionregistration.k8s.io/v1
 metadata:
-  name: {{ include "auror.fullname" . }}
+  name: {{ include "dvorah.fullname" . }}
   annotations:
     # Inject from ca-root Certificate in devops namespace (our cert-manager namespace)
     cert-manager.io/inject-ca-from: devops/ca-root
   labels:
-    {{- include "auror.labels" . | nindent 4 }}
+    {{- include "dvorah.labels" . | nindent 4 }}
 webhooks:
-  - name: auror.{{ .Release.Namespace | default "firebolt-auror" }}.svc
+  - name: dvorah.{{ .Release.Namespace | default "dvorah" }}.svc
     clientConfig:
       service:
-        namespace: {{ .Release.Namespace | default "firebolt-auror" }}
-        name: {{ include "auror.fullname" . }}
+        namespace: {{ .Release.Namespace | default "dvorah" }}
+        name: {{ include "dvorah.fullname" . }}
         path: /validate
         port: {{ .Values.service.port }}
       {{- if .Values.validatingWebhook.caBundle }}

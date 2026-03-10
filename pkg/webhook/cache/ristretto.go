@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/betorvs/dvorah/pkg/webhook/metrics"
 	ristretto "github.com/dgraph-io/ristretto/v2"
-	"github.com/firebolt-db/firebolt-auror/pkg/webhook/metrics"
 )
 
 // need to implement this for the cache interface

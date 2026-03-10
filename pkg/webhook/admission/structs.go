@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/firebolt-db/firebolt-auror/pkg/webhook/cache"
-	"github.com/firebolt-db/firebolt-auror/pkg/webhook/cosign"
+	"github.com/betorvs/dvorah/pkg/webhook/cache"
+	"github.com/betorvs/dvorah/pkg/webhook/cosign"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

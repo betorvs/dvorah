@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "auror.fullname" . }}
+  name: {{ include "dvorah.fullname" . }}
   labels:
-    {{- include "auror.labels" . | nindent 4 }}
+    {{- include "dvorah.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "auror.selectorLabels" . | nindent 6 }}
+      {{- include "dvorah.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,7 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "auror.labels" . | nindent 8 }}
+        {{- include "dvorah.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -27,7 +27,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "auror.serviceAccountName" . }}
+      serviceAccountName: {{ include "dvorah.serviceAccountName" . }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -80,13 +80,13 @@ spec:
                 secretKeyRef:
                   name: aws-credentials
                   key: AWS_SESSION_TOKEN
-            - name: OFFICER_JOB
+            - name: BEE_JOB
               value: "cosign-review"
-            - name: OFFICER_SERVICE
-              value: "auror.firebolt-auror.svc"
-            - name: OFFICER_RESOURCE_KIND
+            - name: BEE_SERVICE
+              value: "dvorah.dvorah.svc"
+            - name: BEE_RESOURCE_KIND
               value: "statefulset"
-            - name: OFFICER_PORT
+            - name: BEE_PORT
               value: "8443"
           {{- end }}
           ports:
@@ -109,25 +109,25 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-            - name: auror-certs
-              mountPath: "/etc/auror/certs"
+            - name: dvorah-certs
+              mountPath: "/etc/dvorah/certs"
               readOnly: true
             - mountPath: /.docker/config.json
-              name: auror-config-volume
+              name: dvorah-config-volume
               subPath: config.json
             - mountPath: /cosign/cosign.pub
-              name: auror-config-volume
+              name: dvorah-config-volume
               subPath: cosign.pub
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
-        - name: auror-certs
+        - name: dvorah-certs
           secret:
-            secretName: auror-certificates
-        - name: auror-config-volume
+            secretName: dvorah-certificates
+        - name: dvorah-config-volume
           configMap:
-            name: auror-config
+            name: dvorah-config
             items:
             - key: docker-config.json
               path: docker-config.json

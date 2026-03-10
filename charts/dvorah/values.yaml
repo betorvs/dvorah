@@ -1,5 +1,5 @@
 ---
-# Default values for auror.
+# Default values for dvorah.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -8,7 +8,7 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: firebolt-auror/auror
+  repository: betorvs/dvorah
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -125,19 +125,19 @@ cosign:
     
 env:
   enabled: false
-  awsRoleArn: "arn:aws:iam::123456789123:role/firebolt-auror-auror"
+  awsRoleArn: "arn:aws:iam::123456789123:role/dvorah"
   kind:
     enabled: false
 
 
 args:
   enabled: true
-  # This is for the mode of the auror. 
+  # This is for the mode of the dvorah. 
   # "audit" - audit all requests
   # "deny" - deny all requests
   mode: "audit"
-  cert: "/etc/auror/certs/tls.crt"
-  key: "/etc/auror/certs/tls.key"
+  cert: "/etc/dvorah/certs/tls.crt"
+  key: "/etc/dvorah/certs/tls.key"
   publicKey: "/cosign/cosign.pub"
   registry: "123456789123.dkr.ecr.us-east-1.amazonaws.com"
   logLevel: "info"
@@ -182,7 +182,7 @@ serviceMonitor:
   # labels: {}
   # endpoints: {}
   enabled: true
-  namespace: firebolt-auror
+  namespace: dvorah
   endpoints:
     default:
       interval: 10s

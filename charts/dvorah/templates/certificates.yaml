@@ -1,0 +1,28 @@
+{{- if .Values.certificate.enabled -}}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dvorah-certificates
+  namespace: {{ .Release.Namespace | default "dvorah" }}
+  labels:
+    {{- include "dvorah.labels" . | nindent 4 }}
+spec:
+  secretName: dvorah-certificates
+  duration: 2160h0m0s
+  renewBefore: 360h0m0s
+  dnsNames:
+    - {{ .Release.Name }}.{{ .Release.Namespace | default "dvorah" }}
+    - {{ .Release.Name }}.{{ .Release.Namespace | default "dvorah" }}.svc
+    - {{ include "dvorah.fullname" . }}.{{ .Release.Namespace | default "dvorah" }}.svc
+    - {{ .Release.Name }}.{{ .Release.Namespace | default "dvorah" }}.svc.cluster.local
+  issuerRef:
+    name: ca-root
+    kind: ClusterIssuer
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  usages:
+    - client auth
+    - server auth
+{{- end }}

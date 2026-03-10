@@ -32,7 +32,7 @@ func run() error {
 	caFile := flag.String("ca-file", "./tls.crt", "File containing the x509 Certificate for HTTPS.")
 	skip := flag.Bool("skip", true, "Skip certificate verification for testing purposes.")
 	protocol := flag.String("protocol", "https", "Protocol to use: [http, https]")
-	service := flag.String("service", "auror.firebolt-auror.svc", " Service to connect to")
+	service := flag.String("service", "dvorah.dvorah.svc", " Service to connect to")
 	port := flag.Int("port", 443, "Port to connect to (localhost test used 8443)")
 	resourceKind := flag.String("kind", "pod", "[cosign-review flag] Resource kind to test: [pod, deployment, replicaset, daemonset, statefulset, job, cronjob]")
 	imageFormat := flag.String("image", "digest", "[cosign-review flag] Image format to use: [default, digest, unsigned]")
@@ -42,20 +42,20 @@ func run() error {
 	c := Client{
 		Web: &http.Client{},
 	}
-	// check officer environment variable
-	envJob := os.Getenv("OFFICER_JOB")
+	// check BEE environment variable
+	envJob := os.Getenv("BEE_JOB")
 	if envJob != "" {
 		job = &envJob
 	}
-	envService := os.Getenv("OFFICER_SERVICE")
+	envService := os.Getenv("BEE_SERVICE")
 	if envService != "" {
 		service = &envService
 	}
-	envRresourceKind := os.Getenv("OFFICER_RESOURCE_KIND")
+	envRresourceKind := os.Getenv("BEE_RESOURCE_KIND")
 	if envRresourceKind != "" {
 		resourceKind = &envRresourceKind
 	}
-	envPort := os.Getenv("OFFICER_PORT")
+	envPort := os.Getenv("BEE_PORT")
 	if envPort != "" {
 		portInt, err := strconv.Atoi(envPort)
 		if err == nil {
@@ -103,7 +103,7 @@ func run() error {
 		}
 		c.WarmUp(*protocol, *service, *port, *images)
 	default:
-		fmt.Println("Usage: ./officer -job cosign-review -service localhost -port 8443")
+		fmt.Println("Usage: ./BEE -job cosign-review -service localhost -port 8443")
 	}
 	return nil
 }

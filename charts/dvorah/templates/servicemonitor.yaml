@@ -3,14 +3,14 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "auror.fullname" . }}
-  namespace: {{ .Release.Namespace | default "firebolt-auror" }}
+  name: {{ include "dvorah.fullname" . }}
+  namespace: {{ .Release.Namespace | default "firebolt-dvorah" }}
   labels:
-    {{- include "auror.labels" . | nindent 4 }}
+    {{- include "dvorah.labels" . | nindent 4 }}
 spec:
   endpoints:
     {{- values .Values.serviceMonitor.endpoints | toYaml | nindent 4 }}
   selector:
     matchLabels:
-      {{- include "auror.selectorLabels" . | nindent 6 }}
+      {{- include "dvorah.selectorLabels" . | nindent 6 }}
 {{- end }}
