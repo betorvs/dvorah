@@ -5,8 +5,11 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
+	"strings"
 
+	"github.com/betorvs/dvorah/pkg/config"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
@@ -16,135 +19,187 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
-func NewVerifier(ctx context.Context, config VerifierConfig) (*Verifier, error) {
-	if config.HashAlgorithm == 0 {
-		config.HashAlgorithm = crypto.SHA256
+// Return a new verifier
+func NewVerifier(ctx context.Context, dvorahCfg *config.DvorahConfig, logger *slog.Logger) (*Verifier, error) {
+	v := &Verifier{
+		Config:    dvorahCfg,
+		Logger:    logger,
+		Providers: make(map[string]RegistryClient),
 	}
 
-	// parse the provider
-	switch config.Provider {
-	case ProviderAWS:
-		// AWS_ECR_REGION is used for the ECR client
-		// it should match with the region of the ECR registry
-		// our case it is us-east-1
-		region, ok := os.LookupEnv("AWS_ECR_REGION")
-		if !ok {
-			region = "us-east-1"
-		}
-		ecrClient, err := NewECRClient(ctx, config.Logger, region, config.InCluster, config.Registries)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create ECR client: %w", err)
-		}
-		config.RegistryClient = ecrClient
-	case ProviderGoogle:
-		googleClient, err := NewGoogleClient(ctx, config.Logger, config.InCluster)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Google client: %w", err)
-		}
-		config.RegistryClient = googleClient
-	case ProviderOpenRegistry:
-		openRegistryClient, err := NewOpenRegistryClient(ctx, config.Logger, config.InCluster, config.Registries)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Open Registry client: %w", err)
-		}
-		config.RegistryClient = openRegistryClient
-	}
-
-	publicKey, err := loadPublicKey(config.PublicKeyPath)
+	// Inicializa os braços (providers) injetando o config se necessário
+	providers, err := newProviders(ctx, dvorahCfg, logger)
 	if err != nil {
 		return nil, err
 	}
-	config.PublicKey = publicKey
+	v.Providers = providers
 
-	return &Verifier{
-		config: config,
-	}, nil
+	return v, nil
 }
 
-func (v *Verifier) VerifySignature(image string) (bool, string, error) {
+func newProviders(ctx context.Context, c *config.DvorahConfig, logger *slog.Logger) (map[string]RegistryClient, error) {
+	logger.Info("loading providers")
+	providers := make(map[string]RegistryClient)
+
+	loader := func(provider string, inCluster bool, registries []string) error {
+		switch provider {
+		case config.ProviderAWS:
+			logger.Debug("loading aws provider")
+			// AWS_ECR_REGION is used for the ECR client
+			// it should match with the region of the ECR registry
+			// our case it is us-east-1
+			region, ok := os.LookupEnv("AWS_ECR_REGION")
+			if !ok {
+				region = "us-east-1"
+			}
+			ecrClient, err := NewECRClient(ctx, logger, region, inCluster, registries)
+			if err != nil {
+				return fmt.Errorf("failed to create ECR client: %w", err)
+			}
+			providers[config.ProviderAWS] = ecrClient
+		case config.ProviderGoogle:
+			logger.Debug("loading google provider")
+			googleClient, err := NewGoogleClient(ctx, logger, inCluster)
+			if err != nil {
+				return fmt.Errorf("failed to create Google client: %w", err)
+			}
+			providers[config.ProviderGoogle] = googleClient
+		case config.ProviderOpenRegistry:
+			logger.Debug("loading open-registry provider")
+			openRegistryClient, err := NewOpenRegistryClient(ctx, logger, inCluster, registries)
+			if err != nil {
+				return fmt.Errorf("failed to create Open Registry client: %w", err)
+			}
+			providers[config.ProviderOpenRegistry] = openRegistryClient
+		}
+		return nil
+	}
+
+	for _, v := range c.Policies {
+		err := loader(v.Provider, v.InCluster, v.Registries)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(providers) == 0 {
+		logger.Debug("no providers loaded, checking global")
+		err := loader(c.GlobalProvider, c.InCluster, c.GetAllowedRegistries())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return providers, nil
+}
+
+func (v *Verifier) VerifySignature(image string) (bool, string, string, error) {
 
 	ctx := context.Background()
-	v.config.Logger.Debug("Starting signature verification for image", "image", image)
+	v.Logger.Debug("Starting signature verification for image", "image", image)
 
 	// Parse the image reference
 	imageRef, err := name.ParseReference(image)
 	if err != nil {
-		return false, "", fmt.Errorf("parsing reference: %w", err)
+		return false, "", v.Config.GlobalMode, fmt.Errorf("parsing reference: %w", err)
 	}
-	v.config.Logger.Debug("Parsed reference", "image", imageRef.String())
+	v.Logger.Debug("Parsed reference", "image", imageRef.String())
 
+	name, provider, pubKey, mode := v.Config.GetPolicyForImage(imageRef.String(), v.Logger)
+	v.Logger.Debug("return from GetPolicyForImage", "name", name, "provider", provider, "key", pubKey, "mode", mode)
 	// remote options
 	opts := []remote.Option{}
-	switch v.config.Provider {
-	case "aws":
-		awsOpts, err := v.config.RegistryClient.GetRemoteOption(ctx)
+
+	switch provider {
+	case config.ProviderAWS:
+		awsOpts, err := v.Providers[config.ProviderAWS].GetRemoteOption(ctx)
 		if err != nil {
-			return false, "", fmt.Errorf("failed to get ECR remote option: %w", err)
+			return false, "", mode, fmt.Errorf("failed to get ECR remote option: %w", err)
 		}
 		opts = append(opts, awsOpts)
-	case "google":
-		googleOpts, err := v.config.RegistryClient.GetRemoteOption(ctx)
+	case config.ProviderGoogle:
+		googleOpts, err := v.Providers[config.ProviderGoogle].GetRemoteOption(ctx)
 		if err != nil {
-			return false, "", fmt.Errorf("failed to get Google remote option: %w", err)
+			return false, "", mode, fmt.Errorf("failed to get Google remote option: %w", err)
 		}
 		opts = append(opts, googleOpts)
-	case ProviderOpenRegistry:
-		openRegistryOpts, err := v.config.RegistryClient.GetRemoteOption(ctx)
+	case config.ProviderOpenRegistry:
+		openRegistryOpts, err := v.Providers[config.ProviderOpenRegistry].GetRemoteOption(ctx)
 		if err != nil {
-			return false, "", fmt.Errorf("failed to get Open Registry remote option: %w", err)
+			return false, "", mode, fmt.Errorf("failed to get Open Registry remote option: %w", err)
 		}
 		opts = append(opts, openRegistryOpts)
 	default:
-		return false, "", fmt.Errorf("invalid provider: %s", v.config.Provider)
+		return false, "", mode, fmt.Errorf("invalid provider: %s", provider)
+	}
+
+	publicKeyVerifier, err := v.getVerifier(pubKey)
+	if err != nil {
+		return false, "", mode, err
 	}
 
 	checkOpts := &cosign.CheckOpts{
 		ClaimVerifier:      cosign.SimpleClaimVerifier,
 		IgnoreTlog:         true,
 		Offline:            true,
-		SigVerifier:        v.config.PublicKey,
+		SigVerifier:        publicKeyVerifier,
 		RegistryClientOpts: []ociremote.Option{ociremote.WithRemoteOptions(opts...)},
 	}
 
 	// Cosign takes over the rest...
-	v.config.Logger.Debug("Starting Cosign signature verification...")
+	v.Logger.Debug("Starting Cosign signature verification...")
 
 	// pass digest directly to avoid a second remote lookup
 	sigs, err := validSignatures(ctx, imageRef, checkOpts)
 	if err != nil {
-		msg := "Failed to verify signature"
-		v.config.Logger.Error(msg, "error", err, "image", imageRef.String(), "digest", imageRef.Identifier())
-		return false, "", fmt.Errorf("failed to verify signature: %w", err)
+		v.Logger.Error("Failed to verify signature", "error", err, "image", imageRef.String(), "digest", imageRef.Identifier())
+		return false, "", mode, fmt.Errorf("failed to verify signature: %w", err)
 	}
 
 	// resolve ref to a digest for logging purposis
 	digest, err := ociremote.ResolveDigest(imageRef, checkOpts.RegistryClientOpts...)
 	if err != nil {
-		v.config.Logger.Error("Cannot get remote digest", "error", err, "image", imageRef.String())
-		return false, "", fmt.Errorf("cannot get remote digest: %w", err)
+		v.Logger.Error("Cannot get remote digest", "error", err, "image", imageRef.String())
+		return false, "", mode, fmt.Errorf("cannot get remote digest: %w", err)
 	}
 
 	if len(sigs) > 0 {
-		v.config.Logger.Debug("Signature verification successful for image", "image", imageRef.String(), "digest", digest.Identifier())
-		v.config.Logger.Debug("Found valid signature(s)", "count", len(sigs))
+		v.Logger.Debug("Signature verification successful for image", "image", imageRef.String(), "digest", digest.Identifier())
+		v.Logger.Debug("Found valid signature(s)", "count", len(sigs))
 		payload, err := sigs[0].Payload()
 		if err != nil {
-			v.config.Logger.Error("Failed to get first signature payload", "error", err, "image", imageRef.String(), "digest", digest.Identifier())
-			return false, "", fmt.Errorf("failed to get first signature payload: %w", err)
+			v.Logger.Error("Failed to get first signature payload", "error", err, "image", imageRef.String(), "digest", digest.Identifier())
+			return false, "", mode, fmt.Errorf("failed to get first signature payload: %w", err)
 		}
 		var payloadJSON map[string]interface{}
 		if err := json.Unmarshal(payload, &payloadJSON); err != nil {
-			v.config.Logger.Error("Failed to parse first signature payload", "error", err, "image", imageRef.String(), "digest", digest.Identifier())
-			return false, "", fmt.Errorf("failed to parse first signature payload: %w", err)
+			v.Logger.Error("Failed to parse first signature payload", "error", err, "image", imageRef.String(), "digest", digest.Identifier())
+			return false, "", mode, fmt.Errorf("failed to parse first signature payload: %w", err)
 		}
 
 		dockerManifestDigest := payloadJSON["critical"].(map[string]interface{})["image"].(map[string]interface{})["docker-manifest-digest"].(string)
-		v.config.Logger.Debug("Manifest digest from first signature", "docker-manifest-digest", dockerManifestDigest, "image", imageRef.String(), "digest", digest.Identifier())
-		return true, dockerManifestDigest, nil
+		v.Logger.Debug("Manifest digest from first signature", "docker-manifest-digest", dockerManifestDigest, "image", imageRef.String(), "digest", digest.Identifier())
+		return true, dockerManifestDigest, mode, nil
 	}
 
-	v.config.Logger.Info("No valid signatures found for image", "image", imageRef.String(), "digest", digest.Identifier())
-	return false, "", nil
+	v.Logger.Info("No valid signatures found for image", "image", imageRef.String(), "digest", digest.Identifier())
+	return false, "", mode, nil
+}
+
+func (v *Verifier) getVerifier(publicKeyData string) (signature.Verifier, error) {
+	if publicKeyData == "" {
+		return nil, fmt.Errorf("public key data is empty")
+	}
+
+	// Check if string starts with - or /
+	if strings.HasPrefix(strings.TrimSpace(publicKeyData), "-----BEGIN PUBLIC KEY-----") {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(publicKeyData))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse public key: %v", err)
+		}
+		return signature.LoadVerifier(pk, crypto.SHA256)
+	}
+
+	return loadPublicKey(publicKeyData)
 }
 
 func validSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {

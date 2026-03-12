@@ -41,13 +41,10 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - -mode={{.Values.args.mode}}
             - -cert={{.Values.args.cert}}
             - -key={{.Values.args.key}}
             - -port={{ .Values.service.port }}
             - -adm-port={{ .Values.service.metrics.port }}
-            - -public-key={{.Values.args.publicKey}}
-            - -registry={{.Values.args.registry}}
             - -log-level={{.Values.args.logLevel}}
             - -digest-cache-size={{.Values.args.digestCacheSize}}
             - -digest-cache-ttl={{.Values.args.digestCacheTTL}}
@@ -56,38 +53,26 @@ spec:
             - -owner-cache-size={{.Values.args.ownerCacheSize}}
             - -owner-cache-ttl={{.Values.args.ownerCacheTTL}}
             - -use-tag-cache={{.Values.args.useTagCache}}
+            {{- if not .Values.args.policyConfig }}
+            - -mode={{.Values.args.mode}}
+            - -public-key={{.Values.args.publicKey}}
+            - -registry={{.Values.args.registry}}
+            {{- end }}
+            {{- if .Values.args.policyConfig }}
+            - -policy-config=/config/config.yaml
+            {{- end }}
+            {{- if .Values.args.skipDvorahValidation }}
+            - -dvorah-validation=false
+            {{- end }}
           {{- if .Values.env.enabled }}
           env:
-            - name: AWS_ROLE_ARN
-              value: {{ .Values.env.awsRoleArn }}
-          {{- end }}
-          {{- if and .Values.env.kind.enabled (not .Values.env.enabled) }}
-          env:
-            - name: AWS_ACCESS_KEY_ID
+            - name: DVORAH_NAMESPACE
               valueFrom:
-                secretKeyRef:
-                  name: aws-credentials
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-credentials
-                  key: AWS_SECRET_ACCESS_KEY
-            - name: AWS_REGION
-              value: us-east-1
-            - name: AWS_SESSION_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: aws-credentials
-                  key: AWS_SESSION_TOKEN
-            - name: BEE_JOB
-              value: "cosign-review"
-            - name: BEE_SERVICE
-              value: "dvorah.dvorah.svc"
-            - name: BEE_RESOURCE_KIND
-              value: "statefulset"
-            - name: BEE_PORT
-              value: "8443"
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- with .Values.env.content }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- end }}
           ports:
             - name: http
@@ -115,9 +100,16 @@ spec:
             - mountPath: /.docker/config.json
               name: dvorah-config-volume
               subPath: config.json
+            {{- if not .Values.args.policyConfig }}
             - mountPath: /cosign/cosign.pub
               name: dvorah-config-volume
               subPath: cosign.pub
+            {{- end}}
+            {{- if .Values.args.policyConfig }}
+            - mountPath: /config/config.yaml
+              name: dvorah-config-volume
+              subPath: config.yaml
+            {{- end}}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -131,8 +123,14 @@ spec:
             items:
             - key: docker-config.json
               path: docker-config.json
+            {{- if not .Values.args.policyConfig }}
             - key: cosign.pub
               path: cosign.pub
+            {{- end}}
+            {{- if .Values.args.policyConfig }}
+            - key: config.yaml
+              path: config.yaml
+            {{- end}}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}

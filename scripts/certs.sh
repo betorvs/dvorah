@@ -13,3 +13,5 @@ fi
 if [ ! -f "secret-adm.yaml" ]; then
     kubectl create secret tls dvorah-certificates --cert=$cert --key=$key -n ${NS} --dry-run=client -o yaml > dvorah-certificates.yaml
 fi
+
+kubectl apply -n dvorah -f dvorah-certificates.yaml

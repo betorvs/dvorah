@@ -68,10 +68,11 @@ kubectl get pods -n dvorah
 ### Configuration
 
 #### Key Configuration Options
-- `--mode`: Set to `deny` (block unsigned images) or `audit` (log only)
-- `--registry`: Specify allowed ECR registries (comma-separated)
-- `--public-key`: Path to Cosign public key for signature verification
-- `--log-level`: Set logging level (`info` or `debug`)
+- `-log-level`: Set logging level (`info` or `debug`)
+- `-policy-config=config.yaml`: YAML config file for admission policy rules.
+- `-mode`: [DEPRECATED] Set to `deny` (block unsigned images) or `audit` (log only)
+- `-registry`: [DEPRECATED] Specify allowed ECR registries (comma-separated)
+- `-public-key`: [DEPRECATED] Path to Cosign public key for signature verification
 
 ### Testing
 

@@ -19,19 +19,22 @@ type CacheConfig struct {
 }
 
 type Validator struct {
-	verifier    *cosign.Verifier
-	ownerCache  cache.CacheInterface
-	cache       cache.CacheInterface
-	tagCache    cache.CacheInterface
-	useTagCache bool
-	mode        string
-	registries  []string
-	logger      *slog.Logger
+	verifier         *cosign.Verifier
+	ownerCache       cache.CacheInterface
+	cache            cache.CacheInterface
+	tagCache         cache.CacheInterface
+	useTagCache      bool
+	registries       []string
+	logger           *slog.Logger
+	dvorahName       string
+	dvorahNamespace  string
+	dvorahValidation bool
 }
 
 type VerificationResult struct {
 	Image  string
 	Digest string
+	Mode   string
 	Valid  bool
 	Error  error
 }

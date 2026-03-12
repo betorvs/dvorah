@@ -48,8 +48,9 @@ tasks:
       - docker tag dvorah/dvorah:{{.VERSION}} localhost:5005/dvorah/dvorah:{{.VERSION}}
       - docker push localhost:5005/dvorah/dvorah:{{.VERSION}}
       - kubectl config use-context kind-kind
-      - bash scripts/dvorah-creds.sh
-      - helm template dvorah charts/dvorah --set image.repository="ctlptl-registry:5000/dvorah/dvorah" --set image.tag={{.VERSION}} --set validatingWebhook.caBundle="$(cat tlsdvorah.crt | base64 )" -f values.kind.yaml --namespace dvorah > manifests-dvorah.yaml
+      - bash scripts/certs.sh
+      - kubectl apply -f dvorah-certificates.yaml
+      - helm template dvorah charts/dvorah --set image.repository="ctlptl-registry:5000/dvorah/dvorah" --set image.tag={{.VERSION}} --set validatingWebhook.caBundle="$(cat tls.crt | base64 )" --set args.policyConfig=true --set env.enabled=true --namespace dvorah > manifests-dvorah.yaml
       - kubectl apply -f manifests-dvorah.yaml -n dvorah
     vars:
       VERSION:
@@ -59,20 +60,30 @@ tasks:
     desc: Delete dvorah
     cmds:
       - kubectl delete -f manifests-dvorah.yaml -n dvorah
+
+  dvorah-logs:
+    desc: Get logs from pod in Kind 
+    cmds:
+      - kubectl logs -n dvorah -l app.kubernetes.io/name=dvorah
   
   dvorah-test-cosign:
     desc: Test dvorah with cosign review
     cmds:
-      - kubectl port-forward -n dvorah service/dvorah 8443:8443 &
-      - sleep 3
-      - go run ./cmd/officer/main.go -job cosign-review -service localhost -port 8443 -kind pod -image digest -skip
-      - pkill -f "kubectl port-forward"
+      - kubectl exec -ti -n dvorah $(kubectl get pods -n dvorah | grep dvorah | awk '{print $1}') -- /bin/bee
 
   dvorah-test-warmup:
     desc: Warm up dvorah cache with test images
     cmds:
       - kubectl port-forward -n dvorah service/dvorah 8443:8443 &
       - sleep 3
-      # Replace with your ECR registry address
-      - go run ./cmd/officer/main.go -job warmup -service localhost -port 8443 -images "123456789123.dkr.ecr.us-east-1.amazonaws.com/nginx:1.27.2-alpine,123456789123.dkr.ecr.us-east-1.amazonaws.com/busybox:1.36.1"
+      - go run ./cmd/bee/main.go -job warmup -service localhost -port 8443 -images "index.docker.io/betorvs/nginx:1.29.5@sha256:f676e65a102e4eb6b30ca6ece7300e1ad72bdd60758b8e4e5072c45b86979916"
       - pkill -f "kubectl port-forward"
+
+  dvorah-e2e-test:
+    desc: go e2e test
+    cmds:
+      - docker build -t betorvs/dvorah:{{.VERSION}} -f Dockerfiles/dvorah/Dockerfile .
+      - VERSION={{ .VERSION }} go test -count=1 -timeout=10m -v bee_guard_test.go
+    vars:
+      VERSION:
+        sh: openssl rand -hex 4
