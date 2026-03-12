@@ -73,11 +73,12 @@ jobs:
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
           TAGS: ${{ steps.docker_meta.outputs.tags }}
         run: |
-          # Extrai apenas a primeira tag para assinar via digest (mais seguro)
-          IMAGE_NAME="ghcr.io/${{ github.repository }}"
-          cosign sign --yes "${IMAGE_NAME}@${DIGEST}"
+          images=""
+          for tag in ${TAGS}; do
+            images+="${tag}@${DIGEST} "
+          done
+          cosign sign --yes ${images}
           
-          # Verificação usando a identidade OIDC do seu repositório
-          cosign verify "${IMAGE_NAME}@${DIGEST}" \
-          --certificate-identity="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/heads/main" \
+          cosign verify "${images}" \
+          --certificate-identity="https://github.com/${{ github.repository }}/.github/workflows/push.yaml@refs/heads/feature/ci-pipeline" \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com
