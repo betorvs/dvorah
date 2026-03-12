@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/betorvs/dvorah/pkg/config"
 	"github.com/betorvs/dvorah/pkg/webhook/cache"
 	"github.com/betorvs/dvorah/pkg/webhook/cosign"
 	"github.com/betorvs/dvorah/pkg/webhook/metrics"
@@ -19,16 +20,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewValidator(verifier *cosign.Verifier, mode string, registries []string, cacheConfig CacheConfig, useTagCache bool, logger *slog.Logger) *Validator {
+func NewValidator(verifier *cosign.Verifier, registries []string, cacheConfig CacheConfig, useTagCache, checkDvorah bool, name, namespace string, logger *slog.Logger) *Validator {
 	return &Validator{
-		verifier:    verifier,
-		ownerCache:  cache.CacheFactory(cacheConfig.OwnerSize, cacheConfig.OwnerTTL, "owner", logger),
-		cache:       cache.CacheFactory(cacheConfig.DigestSize, cacheConfig.DigestTTL, "digest", logger),
-		tagCache:    cache.CacheFactory(cacheConfig.TagSize, cacheConfig.TagTTL, "tag", logger),
-		mode:        mode,
-		registries:  registries,
-		useTagCache: useTagCache,
-		logger:      logger,
+		verifier:         verifier,
+		ownerCache:       cache.CacheFactory(cacheConfig.OwnerSize, cacheConfig.OwnerTTL, "owner", logger),
+		cache:            cache.CacheFactory(cacheConfig.DigestSize, cacheConfig.DigestTTL, "digest", logger),
+		tagCache:         cache.CacheFactory(cacheConfig.TagSize, cacheConfig.TagTTL, "tag", logger),
+		registries:       registries,
+		useTagCache:      useTagCache,
+		logger:           logger,
+		dvorahName:       name,
+		dvorahNamespace:  namespace,
+		dvorahValidation: checkDvorah,
 	}
 }
 
@@ -48,15 +51,34 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 	v.logger.Debug("Successfully parsed admission review")
 	v.logger.Debug("Processing admission request", "uid", admissionReview.Request.UID, "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind)
 
-	if admissionReview.Request.Namespace == "dvorah" && admissionReview.Request.Name == "webhook" {
-		v.logger.Debug("Skipping signature verification for webhook's own pod")
-		v.sendResponse(w, &admissionReview, true, "Skipping signature verification for webhook's own pod")
-		return
-	}
+	v.logger.Debug("validator skip", "enabled", v.dvorahValidation, "name", v.dvorahName, "namespace", v.dvorahNamespace)
 
 	// To stop the verification if the context is cancelled
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+
+	if admissionReview.Request.Namespace == v.dvorahNamespace && v.dvorahValidation {
+		v.logger.Debug("Skipping signature verification for dvorah's own pod")
+		_, _, objectMetadata, err := v.extractImagesFromAdmissionReview(admissionReview.Request.Object.Raw, admissionReview.Request.Kind.Kind)
+		if err != nil {
+			v.logger.Error("Failed to extract objectMetadata", "error", err)
+			v.sendResponse(w, &admissionReview, false, fmt.Sprintf("Failed to extract objectMetadata: %v", err))
+			return
+		}
+		if admissionReview.Request.Name == v.dvorahName && admissionReview.Request.Kind.Kind == "Deployment" {
+			if v.addOwnerCacheEntry(ctx, admissionReview.Request.Kind.Kind, objectMetadata.Namespace, objectMetadata.Name, string(objectMetadata.UID)) {
+				v.logger.Debug("Adding owner cache entry", "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind, "uid", string(objectMetadata.UID), "cache size", v.ownerCache.Len())
+			}
+		}
+		if v.checkOwnership(ctx, admissionReview.Request.Kind.Kind, admissionReview.Request.Namespace, objectMetadata.OwnerReferences) {
+			if v.addOwnerCacheEntry(ctx, admissionReview.Request.Kind.Kind, objectMetadata.Namespace, objectMetadata.Name, string(objectMetadata.UID)) {
+				v.logger.Debug("Adding owner cache entry", "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind, "uid", string(objectMetadata.UID), "cache size", v.ownerCache.Len())
+			}
+		}
+		v.sendResponse(w, &admissionReview, true, "Skipping signature verification for dvorah's own pod")
+		return
+	}
+
 	internalImages, externalImages, objectMetadata, err := v.extractImagesFromAdmissionReview(admissionReview.Request.Object.Raw, admissionReview.Request.Kind.Kind)
 	if err != nil {
 		v.logger.Error("Failed to extract images", "error", err)
@@ -80,7 +102,8 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 		}
 		v.logger.Error("Found external images that will not be validated",
 			"images", externalImages, "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind)
-		v.handleFailedVerification(w, &admissionReview, fmt.Sprintf("%v", externalImages), fmt.Errorf("found external images that will not be validated"))
+		mode := v.verifier.Config.GetGlobalMode()
+		v.handleFailedVerification(w, &admissionReview, fmt.Sprintf("%v", externalImages), mode, fmt.Errorf("found external images that will not be validated"))
 		return
 	}
 
@@ -130,7 +153,7 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 		v.sendResponse(w, &admissionReview, true, "All image signatures verified successfully")
 	} else {
 		v.logger.Error("Signature verification failed", "image", firstFailure, "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind)
-		v.handleFailedVerification(w, &admissionReview, firstFailure.Image, firstFailure.Error)
+		v.handleFailedVerification(w, &admissionReview, firstFailure.Image, firstFailure.Mode, firstFailure.Error)
 	}
 
 }
@@ -144,8 +167,7 @@ func (v *Validator) isAllowedRegistry(image string) bool {
 	return false
 }
 
-// TODO fix unused digest
-func (v *Validator) handleFailedVerification(w http.ResponseWriter, review *admissionv1.AdmissionReview, image string, err error) {
+func (v *Validator) handleFailedVerification(w http.ResponseWriter, review *admissionv1.AdmissionReview, image, mode string, err error) {
 
 	message := "Failed to verify signature for image: " + image
 	if err != nil {
@@ -153,7 +175,7 @@ func (v *Validator) handleFailedVerification(w http.ResponseWriter, review *admi
 	}
 
 	// If audit mode
-	if v.mode == "audit" {
+	if mode == config.ModeAudit {
 		warningMessage := "WARNING: Allowing " + review.Request.Kind.Kind + " creation in audit mode: " + message
 		v.logger.Info(warningMessage)
 		v.sendResponse(w, review, true, warningMessage)
@@ -269,18 +291,17 @@ func (v *Validator) verifyImage(ctx context.Context, image string, namespace str
 	}
 
 	// Verify signature if not in cache
-	valid, digest, err := v.verifier.VerifySignature(image)
+	valid, digest, mode, err := v.verifier.VerifySignature(image)
 	result.Valid = valid
 	result.Digest = digest
+	result.Mode = mode
 	result.Error = err
 	if err != nil {
-		v.logger.Error("Failed to verify signature", "error", err, "image", image)
 		sendResult(ctx, resultCh, result)
 		return
 	}
 
 	if !valid {
-		v.logger.Error("Invalid signature", "digest", digest, "image", image)
 		sendResult(ctx, resultCh, result)
 		return
 	}

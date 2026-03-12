@@ -1,0 +1,25 @@
+globalMode: "deny"
+globalProvider: "open-registry"
+globalRegistries: 
+  - "index.docker.io/betorvs"
+globalPublicKey: |
+  -----BEGIN PUBLIC KEY-----
+  MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEXBC/tG86ZkNXCMSODNnqWSv94czb
+  QwYxG2qpcX90HRs3amRFfKMFcKWDNf3AmFmGRVySxvZYZ6ZR7WqYRTMm5Q==
+  -----END PUBLIC KEY-----
+
+policies:
+  - name: "Google Artifact Registry - Production"
+    pattern: "gcr.io/my-company/*"
+    provider: "google"
+    publicKey: |
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (GCP Specific Key)
+      -----END PUBLIC KEY-----
+    mode: "deny"
+
+  - name: "DockerHub Public Tools"
+    pattern: "docker.io/library/*"
+    publicKey: "/etc/dvorah/keys/docker-sig.pub" # path or string literal
+    provider: "open-registry"
+    mode: "audit" # allow public images but with warning

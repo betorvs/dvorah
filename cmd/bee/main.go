@@ -112,18 +112,18 @@ type Client struct {
 	Web *http.Client
 }
 
-func (c Client) Request(serverURL, method string, body io.Reader) ([]byte, error) {
+func (c Client) Request(serverURL, method string, body io.Reader) ([]byte, int, error) {
 	req, err := http.NewRequest(method, serverURL, body)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, 0, err
 	}
 	res, err := c.Web.Do(req)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, 0, err
 	}
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, res.StatusCode, err
 	}
 	defer func() {
 		err := res.Body.Close()
@@ -131,10 +131,7 @@ func (c Client) Request(serverURL, method string, body io.Reader) ([]byte, error
 			fmt.Println(err)
 		}
 	}()
-	if res.StatusCode == http.StatusOK {
-		return b, nil
-	}
-	return []byte{}, fmt.Errorf("status code: %d, raw body: %s", res.StatusCode, string(b))
+	return b, res.StatusCode, nil
 }
 
 type ResourceConfig struct {
@@ -223,14 +220,14 @@ func (c Client) WarmUp(protocol, service string, port int, images string) {
 			continue
 		}
 
-		b, err := c.Request(serverURL, http.MethodPost, bytes.NewReader(data))
+		b, c, err := c.Request(serverURL, http.MethodPost, bytes.NewReader(data))
 		if err != nil {
-			fmt.Printf("Error warming up image %s: %v\n", image, err)
+			fmt.Printf("Error warming up image %s: %v, code: %d \n", image, err, c)
 			continue
 		}
 
 		fmt.Printf("Successfully warmed up image %s\n", image)
-		fmt.Printf("Response: %s\n", string(b))
+		fmt.Printf("Response: %s, Code: %d\n", string(b), c)
 	}
 }
 
@@ -284,14 +281,14 @@ func (c Client) CosignReview(protocol, service string, port int, resourceKind, i
 	}
 
 	serverURL := fmt.Sprintf("%s://%s:%d/validate", protocol, service, port)
-	b, err := c.Request(serverURL, http.MethodPost, bytes.NewReader(data))
+	b, code, err := c.Request(serverURL, http.MethodPost, bytes.NewReader(data))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(code, err)
 		return
 	}
 	resp := string(b)
 	if resp != "" {
-		fmt.Printf("Service %s answered OK\n", serverURL)
+		fmt.Printf("Service %s answered http code %d\n", serverURL, code)
 		fmt.Println(resp)
 	}
 }
@@ -304,14 +301,14 @@ func generateResourceConfig(resourceKind, imageFormat string) ResourceConfig {
 	// Replace with your ECR registry address and images
 	switch imageFormat {
 	case "digest":
-		nginxImage = "123456789123.dkr.ecr.us-east-1.amazonaws.com/nginx:1.27.2-alpine@sha256:1234567890"
-		busyboxImage = "123456789123.dkr.ecr.us-east-1.amazonaws.com/busybox:1.36.1@sha256:1234567890"
+		nginxImage = "index.docker.io/betorvs/nginx:1.29.5@sha256:f676e65a102e4eb6b30ca6ece7300e1ad72bdd60758b8e4e5072c45b86979916"
+		busyboxImage = "index.docker.io/betorvs/busybox:11.37.0@sha256:bf9536d50cebf4337eb4a802e4786f25a9068665385d82a780d210316b818cf8"
 	case "unsigned":
-		nginxImage = "123456789123.dkr.ecr.us-east-1.amazonaws.com/nginx:1.27.0-alpine-amd"
-		busyboxImage = "123456789123.dkr.ecr.us-east-1.amazonaws.com/busybox:1.35.0-test-dont-use"
+		nginxImage = "index.docker.io/betorvs/nginx:1.28.2"
+		busyboxImage = "index.docker.io/betorvs/busybox:1.36.1"
 	default:
-		nginxImage = "123456789123.dkr.ecr.us-east-1.amazonaws.com/nginx:1.27.2-alpine"
-		busyboxImage = "123456789123.dkr.ecr.us-east-1.amazonaws.com/busybox:1.36.1"
+		nginxImage = "index.docker.io/betorvs/nginx:1.29.5"
+		busyboxImage = "index.docker.io/betorvs/busybox:1.37.0"
 	}
 
 	config := ResourceConfig{
@@ -610,7 +607,7 @@ func generateResourceConfig(resourceKind, imageFormat string) ResourceConfig {
                     }
                 }
             }
-        }`, busyboxImage, busyboxImage)
+        }`, nginxImage, busyboxImage)
 	case "cronjob":
 		config.kind = "CronJob"
 		config.group = "batch"

@@ -118,16 +118,43 @@ dockerConfig: |
 
 
 certificate:
-  enabled: true
+  enabled: false
 
 cosign:
   publicKey: |
     
 env:
   enabled: false
-  awsRoleArn: "arn:aws:iam::123456789123:role/dvorah"
-  kind:
-    enabled: false
+  # content examples:
+  # content: |
+  # - name: AWS_ROLE_ARN
+  #   value: "arn:aws:iam::123456789123:role/dvorah"
+  # - name: AWS_ACCESS_KEY_ID
+  #   valueFrom:
+      # secretKeyRef:
+        # name: aws-credentials
+        # key: AWS_ACCESS_KEY_ID
+  # - name: AWS_SECRET_ACCESS_KEY
+    # valueFrom:
+      # secretKeyRef:
+        # name: aws-credentials
+        # key: AWS_SECRET_ACCESS_KEY
+  # - name: AWS_REGION
+    # value: us-east-1
+  # - name: AWS_SESSION_TOKEN
+    # valueFrom:
+      # secretKeyRef:
+        # name: aws-credentials
+        # key: AWS_SESSION_TOKEN
+  content:
+    - name: BEE_JOB
+      value: "cosign-review"
+    - name: BEE_SERVICE
+      value: "dvorah.dvorah.svc"
+    - name: BEE_RESOURCE_KIND
+      value: "statefulset"
+    - name: BEE_PORT
+      value: "8443"
 
 
 args:
@@ -140,7 +167,7 @@ args:
   key: "/etc/dvorah/certs/tls.key"
   publicKey: "/cosign/cosign.pub"
   registry: "123456789123.dkr.ecr.us-east-1.amazonaws.com"
-  logLevel: "info"
+  logLevel: "debug"
   # number of cache entries
   digestCacheSize: 1000
   # ttl in hours 
@@ -155,6 +182,19 @@ args:
   ownerCacheTTL: 12
   # disable/enable tag cache
   useTagCache: false
+  policyConfig: false
+  policyConfigContent: |
+    globalMode: "deny"
+    globalProvider: "open-registry"
+    globalRegistries: 
+      - "index.docker.io/betorvs"
+    globalPublicKey: |
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEXBC/tG86ZkNXCMSODNnqWSv94czb
+      QwYxG2qpcX90HRs3amRFfKMFcKWDNf3AmFmGRVySxvZYZ6ZR7WqYRTMm5Q==
+      -----END PUBLIC KEY-----
+    policies: null
+  skipDvorahValidation: false
   
 validatingWebhook:
   enabled: true
@@ -177,11 +217,9 @@ validatingWebhook:
       resources: ["jobs", "cronjobs"]
 
 serviceMonitor:
-  # enabled: false
-  # namespace: monitoring
   # labels: {}
   # endpoints: {}
-  enabled: true
+  enabled: false
   namespace: dvorah
   endpoints:
     default:

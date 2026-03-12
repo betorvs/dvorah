@@ -5,5 +5,11 @@ metadata:
 data:
   docker-config.json: | 
     {{- toJson .Values.dockerConfig | nindent 4 }}
+  {{- if not .Values.args.policyConfig }}
   cosign.pub: |
     {{- .Values.cosign.publicKey | nindent 4 }}
+  {{- end }}
+  {{- if .Values.args.policyConfig }}
+  config.yaml: |
+    {{- .Values.args.policyConfigContent | nindent 4  }}
+  {{- end }}
