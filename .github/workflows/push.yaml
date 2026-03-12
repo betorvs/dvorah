@@ -37,4 +37,4 @@ jobs:
           task tidy
       - name: e2e-unit-tests
         run: |
-          task e2e-unit-tests
+          task dvorah-e2e-test
