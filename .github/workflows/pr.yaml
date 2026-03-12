@@ -15,14 +15,14 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses:  actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b  # v5.4.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-go@04b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
         with:
           go-version: '1.25'
           cache: false
       # https://github.com/golangci/golangci-lint-action/issues/953
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@1481404843c368bc19ca9406f87d6e0fc97bdcfd  # v7.0.0
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20  # v9.2.0
         with:
           version: v2.11
           args: --timeout=10m
@@ -32,11 +32,11 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       # install Task
       - name: Install Task
         uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611  # v2.0.0
-      - uses:  actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c  # v6.1.0
+      - uses: actions/setup-go@04b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
         with:
           go-version: '1.25'
           cache: false
