@@ -56,7 +56,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=sha,format=long
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/ci-pipeline' }}
 
       - name: Build and Push container images
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
@@ -73,12 +73,9 @@ jobs:
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
           TAGS: ${{ steps.docker_meta.outputs.tags }}
         run: |
-          images=""
-          for tag in ${TAGS}; do
-            images+="${tag}@${DIGEST} "
-          done
-          cosign sign --yes ${images}
+          IMAGE_NAME="ghcr.io/${{ github.repository }}"
+          cosign sign --yes "${IMAGE_NAME}@${DIGEST}"
           
-          cosign verify "${images}" \
+          cosign verify "${IMAGE_NAME}@${DIGEST}" \
           --certificate-identity="https://github.com/${{ github.repository }}/.github/workflows/push.yaml@refs/heads/feature/ci-pipeline" \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com
