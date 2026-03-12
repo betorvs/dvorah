@@ -36,7 +36,7 @@ jobs:
       # install Task
       - name: Install Task
         uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611  # v2.0.0
-      - uses: actions/setup-go@04b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
         with:
           go-version: '1.25'
           cache: false
