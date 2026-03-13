@@ -51,12 +51,12 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.description=Dvorah: A Zero Trust Kubernetes Admission Controller for Cosign signatures.
-            rg.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.verify-command=cosign verify ghcr.io/${{ github.repository }} --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
           annotations: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=Dvorah - a Kubernetes Admission Controller for image signature verification. 
-            custom.cosign.verify-command=cosign verify ghcr.io/${{ github.repository }} --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+            custom.cosign.verify-command=cosign verify ghcr.io/${{ github.repository }}:TAG --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 
       - name: Build and Push container images
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
