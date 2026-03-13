@@ -49,6 +49,9 @@ jobs:
             type=semver,pattern={{version}}
             type=sha,format=long,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          annotations: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
       - name: Build and Push container images
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
@@ -63,7 +66,8 @@ jobs:
           annotations: ${{ steps.docker_meta.outputs.annotations }}
           provenance: mode=max
           sbom: true
-          build-args: VERSION=${{ steps.docker_meta.outputs.tag-names }}
+          build-args: |
+            VERSION=${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
