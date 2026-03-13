@@ -62,7 +62,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/ci-pipeline' }}
           labels: |
             org.opencontainers.image.description=Dvorah: A Zero Trust Kubernetes Admission Controller for Cosign signatures.
-            org.opencontainers.image.verify-command=cosign verify ghcr.io/${{ github.repository }} --certificate-identity="https://github.com/${{ github.repository }}/.github/workflows/push.yaml@refs/heads/feature/ci-pipeline" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+            org.opencontainers.image.verify-command=cosign verify ghcr.io/${{ github.repository }}:TAG --certificate-identity="https://github.com/${{ github.repository }}/.github/workflows/push.yaml@refs/heads/feature/ci-pipeline" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
           annotations: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
