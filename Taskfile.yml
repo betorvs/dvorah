@@ -44,7 +44,7 @@ tasks:
   dvorah-deploy:
     desc: Deploy dvorah
     cmds:
-      - docker build -t dvorah/dvorah:{{.VERSION}} -f Dockerfiles/dvorah/Dockerfile .
+      - docker build --build-arg VERSION={{.VERSION}} -t dvorah/dvorah:{{.VERSION}} -f Dockerfiles/dvorah/Dockerfile .
       - docker tag dvorah/dvorah:{{.VERSION}} localhost:5005/dvorah/dvorah:{{.VERSION}}
       - docker push localhost:5005/dvorah/dvorah:{{.VERSION}}
       - kubectl config use-context kind-kind

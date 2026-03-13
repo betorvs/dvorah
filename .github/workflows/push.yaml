@@ -74,6 +74,9 @@ jobs:
           annotations: ${{ steps.docker_meta.outputs.annotations }}
           provenance: mode=max
           sbom: true
+          build-args: VERSION=${{ steps.docker_meta.outputs.tag-names }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Sign and verify the images with GitHub OIDC Token
         env:

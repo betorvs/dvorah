@@ -28,6 +28,10 @@ const (
 	LogLevelDebug = "debug"
 )
 
+var (
+	Version = "dev"
+)
+
 func main() {
 	// logger
 	var appLogLevel = new(slog.LevelVar)
@@ -64,7 +68,7 @@ func main() {
 	default:
 		appLogLevel.Set(slog.LevelInfo)
 	}
-	logger.Info("Starting up", "log-level", *logLevel)
+	logger.Info("Starting up", "log-level", *logLevel, "version", Version)
 	//
 	cfg := config.New(*inCluster, *policyConfig)
 	if *policyConfig != "" {
