@@ -1,54 +1,14 @@
----
-name: pr
+name: build-sign-publish
+
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - edited
-      - opened
-      - reopened
-      - synchronize
+  push:
+    branches: [ main ]
+  release:
+    types: [ created ]
+  workflow_dispatch:
 
 jobs:
-  golangci:
-    name: lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
-        with:
-          go-version: '1.25'
-          cache: false
-      # https://github.com/golangci/golangci-lint-action/issues/953
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20  # v9.2.0
-        with:
-          version: v2.11
-          args: --timeout=10m
-  e2e-test:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      # install Task
-      - name: Install Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611  # v2.0.0
-      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
-        with:
-          go-version: '1.25'
-          cache: false
-      - name: tidy
-        run: |
-          task tidy
-      - name: e2e-unit-tests
-        run: |
-          task dvorah-e2e-test
-
   build-image:
-    needs: [golangci, "e2e-test"]
     runs-on: ubuntu-latest
 
     permissions:
@@ -72,7 +32,7 @@ jobs:
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
         with:
           driver-opts: |
-            image=moby/buildkit:latest
+            image=moby/buildkit:lates
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
@@ -88,14 +48,15 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=sha,format=long,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/ci-pipeline' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.description=Dvorah: A Zero Trust Kubernetes Admission Controller for Cosign signatures.
-            org.opencontainers.image.verify-command=cosign verify ghcr.io/${{ github.repository }}:TAG --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.github/workflows/pr.yaml@refs/pull/.*/merge$" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+            org.opencontainers.image.verify-command=cosign verify ghcr.io/${{ github.repository }} --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
           annotations: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=Dvorah - a Kubernetes Admission Controller for image signature verification. 
+            custom.cosign.verify-command=cosign verify ghcr.io/${{ github.repository }}:TAG --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 
       - name: Build and Push container images
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
@@ -110,6 +71,8 @@ jobs:
           annotations: ${{ steps.docker_meta.outputs.annotations }}
           provenance: mode=max
           sbom: true
+          build-args: |
+            VERSION=${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -120,7 +83,7 @@ jobs:
         run: |
           IMAGE_NAME="ghcr.io/${{ github.repository }}"
           cosign sign --yes "${IMAGE_NAME}@${DIGEST}"
-          
+
           cosign verify "${IMAGE_NAME}@${DIGEST}" \
-          --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.github/workflows/pr.yaml@refs/pull/.*/merge$" \
+          --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com

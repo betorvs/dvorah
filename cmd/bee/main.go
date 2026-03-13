@@ -20,6 +20,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+var (
+	Version = "dev"
+)
+
 func main() {
 	err := run()
 	if err != nil {
@@ -103,7 +107,8 @@ func run() error {
 		}
 		c.WarmUp(*protocol, *service, *port, *images)
 	default:
-		fmt.Println("Usage: ./BEE -job cosign-review -service localhost -port 8443")
+		fmt.Printf("Bee version: %s\n", Version)
+		fmt.Println("Usage: ./bee -job cosign-review -service localhost -port 8443")
 	}
 	return nil
 }

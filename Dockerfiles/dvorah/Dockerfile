@@ -22,8 +22,9 @@ COPY pkg/config/*.go /go/src/github.com/betorvs/dvorah/pkg/config/
 WORKDIR /go/src/github.com/betorvs/dvorah
 
 RUN go mod download
-RUN go build -o dvorah cmd/dvorah/*
-RUN go build -o bee cmd/bee/*
+ARG VERSION=dev
+RUN go build -ldflags "-X main.Version=${VERSION}" -o dvorah cmd/dvorah/*
+RUN go build -ldflags "-X main.Version=${VERSION}" -o bee cmd/bee/*
 
 FROM gcr.io/distroless/base-debian12:latest
 

@@ -89,6 +89,20 @@ kubectl port-forward -n dvorah service/dvorah 8080:8080
 curl http://localhost:8080/metrics
 ```
 
+### Check image
+
+Check if this image has signature
+```
+cosign tree ghcr.io/betorvs/dvorah:TAG
+```
+
+Keyless verification
+```
+cosign verify "ghcr.io/betorvs/dvorah@TAG" \
+--certificate-identity-regexp="https://github.com/betorvs/dvorah/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" \
+--certificate-oidc-issuer=https://token.actions.githubusercontent.com
+```
+
 
 ### License
 
