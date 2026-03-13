@@ -49,6 +49,9 @@ jobs:
             type=semver,pattern={{version}}
             type=sha,format=long,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.description=Dvorah: A Zero Trust Kubernetes Admission Controller for Cosign signatures.
+            rg.opencontainers.image.source=https://github.com/${{ github.repository }}
           annotations: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
