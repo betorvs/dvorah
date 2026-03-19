@@ -30,5 +30,5 @@ policies:
     registries:
       - "ghcr.io/betorvs/dvorah"
     mode: "deny"
-    identity: "^https://github.com/betorvs/dvorah/.github/workflows/release.yaml@refs/(heads/main|tags/v.*)$"
+    identity_regex: "^https://github.com/betorvs/dvorah/.github/workflows/release.yaml@refs/(heads/main|tags/v.*)$"
     issuer: "https://token.actions.githubusercontent.com"
