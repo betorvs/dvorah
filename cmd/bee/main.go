@@ -311,6 +311,9 @@ func generateResourceConfig(resourceKind, imageFormat string) ResourceConfig {
 	case "unsigned":
 		nginxImage = "index.docker.io/betorvs/nginx:1.28.2"
 		busyboxImage = "index.docker.io/betorvs/busybox:1.36.1"
+	case "keyless":
+		nginxImage = "ghcr.io/betorvs/dvorah:0.1.0@sha256:b992614edff658e1ca035a7c71ab8eb793b7a1c6267113d1e1bb534cf313f6f2"
+		busyboxImage = "ghcr.io/betorvs/dvorah:0.1.0@sha256:b992614edff658e1ca035a7c71ab8eb793b7a1c6267113d1e1bb534cf313f6f2"
 	default:
 		nginxImage = "index.docker.io/betorvs/nginx:1.29.5"
 		busyboxImage = "index.docker.io/betorvs/busybox:1.37.0"
