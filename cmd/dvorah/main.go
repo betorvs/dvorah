@@ -110,7 +110,7 @@ func main() {
 
 	logger.Debug("always skip dvorah validation", "enable", *dvorahValidation, "deployment_name", *dvorahDeploymentName, "namespace", *dvorahDeploymentNamespace)
 
-	validator := admission.NewValidator(verifier, cfg.GetAllowedRegistries(),
+	validator := admission.NewValidator(verifier,
 		admission.CacheConfig{
 			DigestSize: *digestCacheSize,
 			DigestTTL:  time.Duration(*digestCacheTTL) * time.Hour,

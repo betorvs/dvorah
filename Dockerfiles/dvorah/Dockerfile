@@ -1,4 +1,4 @@
-FROM golang:1.25.8 AS builder
+FROM golang:1.26.1 AS builder
 
 RUN mkdir -p /go/src/github.com/betorvs/dvorah/cmd/dvorah
 COPY go.* /go/src/github.com/betorvs/dvorah/

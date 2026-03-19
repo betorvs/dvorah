@@ -23,3 +23,12 @@ policies:
     publicKey: "/etc/dvorah/keys/docker-sig.pub" # path or string literal
     provider: "open-registry"
     mode: "audit" # allow public images but with warning
+
+  - name: "keyless example"
+    pattern: "ghcr.io/betorvs/dvorah:*"
+    provider: "open-registry"
+    registries:
+      - "ghcr.io/betorvs/dvorah"
+    mode: "deny"
+    identity_regex: "^https://github.com/betorvs/dvorah/.github/workflows/release.yaml@refs/(heads/main|tags/v.*)$"
+    issuer: "https://token.actions.githubusercontent.com"

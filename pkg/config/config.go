@@ -20,13 +20,17 @@ const (
 )
 
 type RegistryPolicy struct {
-	Name       string   `yaml:"name"`                 // Ex: "aws"
-	Pattern    string   `yaml:"pattern"`              // Ex: "*.dkr.ecr.us-east-1.amazonaws.com"
-	PublicKey  string   `yaml:"publicKey"`            // Public Key
-	Provider   string   `yaml:"provider"`             // provider to connect
-	Mode       string   `yaml:"mode"`                 // "deny" ou "audit"
-	InCluster  bool     `yaml:"incluster"`            // in cluster bool
-	Registries []string `yaml:"registries,omitempty"` // allowed registries
+	Name          string   `yaml:"name"`                 // Ex: "aws"
+	Pattern       string   `yaml:"pattern"`              // Ex: "*.dkr.ecr.us-east-1.amazonaws.com"
+	PublicKey     string   `yaml:"publicKey,omitempty"`  // Public Key
+	Provider      string   `yaml:"provider"`             // provider to connect
+	Mode          string   `yaml:"mode"`                 // "deny" ou "audit"
+	InCluster     bool     `yaml:"incluster"`            // in cluster bool
+	Registries    []string `yaml:"registries,omitempty"` // allowed registries
+	Identity      string   `yaml:"identity,omitempty"`
+	IdentityRegex string   `yaml:"identity_regex,omitempty"`
+	Issuer        string   `yaml:"issuer,omitempty"`
+	IssuerRegex   string   `yaml:"issuer_regex,omitempty"`
 }
 
 type DvorahConfig struct {
@@ -115,21 +119,26 @@ func (c *DvorahConfig) SetGlobal(mode, publicKey, provider string, registries []
 	return nil
 }
 
-// GetPOlicyForImage returns policy name, provider, publi key and mode
+// GetPOlicyForImage returns RegistryPolicy
 // Default: flags
 // Override: if finds a config file
 // Granularity: If the image matches a specific policy, use that policy's key; otherwise, use the flag's global-public-key.
-func (c *DvorahConfig) GetPolicyForImage(imageURL string, logger *slog.Logger) (string, string, string, string) {
+func (c *DvorahConfig) GetPolicyForImage(imageURL string, logger *slog.Logger) RegistryPolicy {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	for _, p := range c.Policies {
 		if matchPattern(p.Pattern, imageURL, logger) {
-			return p.Name, p.Provider, p.PublicKey, p.Mode
+			return p
 		}
 	}
 
-	return "global", c.GlobalProvider, c.GlobalPublicKey, c.GlobalMode
+	return RegistryPolicy{
+		Name:       "global",
+		Provider:   c.GlobalProvider,
+		PublicKey:  c.GlobalPublicKey,
+		Registries: c.GlobalRegistries,
+	}
 }
 
 // GetAllowedRegistries returns a slice of registries

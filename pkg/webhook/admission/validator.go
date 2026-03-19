@@ -20,13 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewValidator(verifier *cosign.Verifier, registries []string, cacheConfig CacheConfig, useTagCache, checkDvorah bool, name, namespace string, logger *slog.Logger) *Validator {
+func NewValidator(verifier *cosign.Verifier, cacheConfig CacheConfig, useTagCache, checkDvorah bool, name, namespace string, logger *slog.Logger) *Validator {
 	return &Validator{
 		verifier:         verifier,
 		ownerCache:       cache.CacheFactory(cacheConfig.OwnerSize, cacheConfig.OwnerTTL, "owner", logger),
 		cache:            cache.CacheFactory(cacheConfig.DigestSize, cacheConfig.DigestTTL, "digest", logger),
 		tagCache:         cache.CacheFactory(cacheConfig.TagSize, cacheConfig.TagTTL, "tag", logger),
-		registries:       registries,
 		useTagCache:      useTagCache,
 		logger:           logger,
 		dvorahName:       name,
@@ -159,7 +158,8 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 }
 
 func (v *Validator) isAllowedRegistry(image string) bool {
-	for _, registry := range v.registries {
+	allowedRegistries := v.verifier.Config.GetAllowedRegistries()
+	for _, registry := range allowedRegistries {
 		if strings.HasPrefix(image, registry) {
 			return true
 		}

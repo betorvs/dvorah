@@ -24,7 +24,6 @@ type Validator struct {
 	cache            cache.CacheInterface
 	tagCache         cache.CacheInterface
 	useTagCache      bool
-	registries       []string
 	logger           *slog.Logger
 	dvorahName       string
 	dvorahNamespace  string
