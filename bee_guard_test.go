@@ -69,13 +69,13 @@ func TestExample(t *testing.T) {
 				t.Fatalf("Failed to read tls certificate: %v", err)
 			}
 			helmMgr := helm.New(cfg.KubeconfigFile())
-			err = helmMgr.RunInstall(helm.WithName("dvorah"), helm.WithNamespace(namespace), helm.WithReleaseName("dvorah"), helm.WithChart("charts/dvorah"), helm.WithArgs("--set", "image.tag="+version, "--set", "args.policyConfig=true", "--set", "env.enabled=true", "--set", "validatingWebhook.caBundle="+string(caBundle)))
+			err = helmMgr.RunInstall(helm.WithName("dvorah"), helm.WithNamespace(namespace), helm.WithReleaseName("dvorah"), helm.WithChart("charts/dvorah"), helm.WithArgs("--set", "image.repository=betorvs/dvorah", "--set", "image.tag="+version, "--set", "args.policyConfig=true", "--set", "env.enabled=true", "--set", "validatingWebhook.caBundle="+string(caBundle)))
 			// err = helmMgr.RunInstall(helm.WithName("auror"), helm.WithNamespace(namespace), helm.WithReleaseName("auror"), helm.WithChart("charts/auror"), helm.WithArgs("-f", "values.kind.yaml", "--set", "image.tag="+version, "--set", "mutatingWebhook.caBundle="+string(caBundle)))
 			if err != nil {
 				t.Fatalf("Failed to install dvorah helm chart: %v", err)
 			}
 			// wait
-			time.Sleep(10 * time.Second)
+			time.Sleep(15 * time.Second)
 			return ctx
 		}).Assess("checking pod", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// test application running on kind
@@ -92,6 +92,7 @@ func TestExample(t *testing.T) {
 					break
 				}
 			}
+
 			if podName == "" {
 				t.Fatalf("Failed to find pod with name prefix dvorah")
 			}
@@ -100,6 +101,7 @@ func TestExample(t *testing.T) {
 			t.Logf("Running command: %v", command)
 			err = cfg.Client().Resources().ExecInPod(ctx, namespace, podName, "dvorah", command, &stdout, &stderr)
 			if err != nil {
+				time.Sleep(30 * time.Second)
 				t.Fatalf("Error running command in pod: %v", err)
 			}
 			t.Logf("stdout: %v", stdout.String())
