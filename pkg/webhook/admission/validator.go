@@ -262,6 +262,7 @@ func (v *Validator) verifyImage(ctx context.Context, image string, namespace str
 	if idx != -1 {
 		imageDigest = image[idx+1:] // Skip the @ symbol
 		// Check cache
+		v.logger.Debug("image", "var", imageDigest)
 		if entry, ok := v.cache.Get(ctx, imageDigest); ok {
 			if entry.Valid {
 				v.logger.Debug("Found cached successful verification for image", "image", image)

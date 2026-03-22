@@ -8,7 +8,7 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: betorvs/dvorah
+  repository: ghcr.io/betorvs/dvorah
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -156,6 +156,11 @@ env:
     - name: BEE_PORT
       value: "8443"
 
+dockerSecret:
+  enabled: false
+  # example of kubernetes.io/dockerconfigjson
+  # value enabled add DOCKER_CONFIG environment variable and unmount defaut docker config from dvorah config map
+  # create secret: kubectl create secret docker-registry -n dvorah dvorah-auth --docker-server=https://index.docker.io/v1/ --docker-username=USERNAME --docker-password=PASSWORD
 
 args:
   enabled: true
