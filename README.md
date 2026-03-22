@@ -1,5 +1,8 @@
 # Dvorah: Multi-Registry Admission Controller
 
+[![build-sign-publish](https://github.com/betorvs/dvorah/actions/workflows/release.yaml/badge.svg?branch=main)](https://github.com/betorvs/dvorah/actions/workflows/release.yaml)
+
+
 **Dvorah** is a lightweight, stateless Kubernetes Admission Controller focused on image signature verification using **Cosign**. 
 
 It serves as a security gatekeeper for your cluster, ensuring that only images from trusted registries - such as **AWS ECR**, **Google Artifact Registry (GAR)**, and **DockerHub** — are permitted to run, provided they meet your signing policies.
@@ -40,6 +43,8 @@ Developed by the Sigstore project, the policy-controller is excellent for those 
 
 **Dvorah: The Precision Scalpel**
 
+Security should not be a burden. Dvorah was built to solve the 'Policy-as-Code' complexity trap, allowing teams to achieve SOC2/PCI compliance for image provenance in minutes, not weeks.  
+
 Dvorah is designed for engineers who value simplicity and speed.
 
 - Zero CRD Overhead: Dvorah doesn't clutter your cluster with custom resources. It uses a single, intuitive configuration file.
@@ -69,7 +74,7 @@ Dvorah is the ideal choice for:
 
 ### ⚡ **Performance & Observability**
 - **Intelligent Caching:** Multi-tier system to reduce latency and avoid registry rate-limiting (Throttling).
-- **Cloud-Native Metrics:** Prometheus endpoints and OpenTelemetry integration for full cluster visibility.
+- **Cloud-Native Metrics:** Out-of-the-box Prometheus metrics for tracking allowed/denied images and verification latency, compatible with Datadog, Grafana, and AWS Managed Prometheus.
 
 ---
 
@@ -84,6 +89,9 @@ graph LR
     B -->|Decision| A
 ```
 
+**Dvorah** leverages Go's native concurrency and an efficient caching layer to ensure that signature verification doesn't become a bottleneck for your deployment pipelines.  
+
+
 ## Quick Start
 
 ```bash
@@ -93,6 +101,30 @@ helm template dvorah charts/dvorah --set validatingWebhook.caBundle="$(cat tls.c
 ```
 
 Review `manifests-dvorah.yaml` file and edit `dvorah-config` config map to match your own cosign certificates or configurations.
+
+Example of config.yaml to use inside your config map. More examples [here](./config-example.yaml)
+```yaml
+globalMode: "deny"
+globalProvider: "open-registry"
+globalRegistries: 
+  - "index.docker.io/betorvs"
+globalPublicKey: |
+  -----BEGIN PUBLIC KEY-----
+  PUBLIC COSIGN 
+  -----END PUBLIC KEY-----
+
+policies:
+  - name: "keyless example"
+    pattern: "ghcr.io/betorvs/dvorah:*"
+    provider: "open-registry"
+    registries:
+      - "ghcr.io/betorvs/dvorah"
+    mode: "deny"
+    identity_regex: "^https://github.com/betorvs/dvorah/.github/workflows/release.yaml@refs/(heads/main|tags/v.*)$"
+    issuer: "https://token.actions.githubusercontent.com"
+```
+
+Apply your changes:
 
 ```bash
 kubectl apply -n dvorah -f manifests-dvorah.yaml

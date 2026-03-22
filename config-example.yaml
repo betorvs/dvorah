@@ -12,9 +12,22 @@ policies:
   - name: "Google Artifact Registry - Production"
     pattern: "gcr.io/my-company/*"
     provider: "google"
+    registries:
+     - "gcr.io/my-company"
     publicKey: |
       -----BEGIN PUBLIC KEY-----
       MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (GCP Specific Key)
+      -----END PUBLIC KEY-----
+    mode: "deny"
+
+  - name: "AWS ECR"
+    pattern: "123456789123.dkr.ecr.us-east-1.amazonaws.com/*"
+    provider: "aws"
+    registries: 
+     - "123456789123.dkr.ecr.us-east-1.amazonaws.com"
+    publicKey: |
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (AWS KMS public key here)
       -----END PUBLIC KEY-----
     mode: "deny"
 
