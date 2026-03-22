@@ -307,7 +307,13 @@ func generateResourceConfig(resourceKind, imageFormat string) ResourceConfig {
 	switch imageFormat {
 	case "digest":
 		nginxImage = "index.docker.io/betorvs/nginx:1.29.5@sha256:f676e65a102e4eb6b30ca6ece7300e1ad72bdd60758b8e4e5072c45b86979916"
-		busyboxImage = "index.docker.io/betorvs/busybox:11.37.0@sha256:bf9536d50cebf4337eb4a802e4786f25a9068665385d82a780d210316b818cf8"
+		busyboxImage = "index.docker.io/betorvs/busybox:1.37.0@sha256:bf9536d50cebf4337eb4a802e4786f25a9068665385d82a780d210316b818cf8"
+	case "private-signed":
+		nginxImage = "index.docker.io/betorvs/nginx-private:1.29.6@sha256:f676e65a102e4eb6b30ca6ece7300e1ad72bdd60758b8e4e5072c45b86979916"
+		busyboxImage = "index.docker.io/betorvs/nginx-private:busybox1.37.0@sha256:bf9536d50cebf4337eb4a802e4786f25a9068665385d82a780d210316b818cf8"
+	case "private-unsigned":
+		nginxImage = "index.docker.io/betorvs/nginx-private:1.28.2"
+		busyboxImage = "index.docker.io/betorvs/nginx-private:busybox1.36.1"
 	case "unsigned":
 		nginxImage = "index.docker.io/betorvs/nginx:1.28.2"
 		busyboxImage = "index.docker.io/betorvs/busybox:1.36.1"

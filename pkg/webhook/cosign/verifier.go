@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/betorvs/dvorah/pkg/config"
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/sigstore/cosign/v3/pkg/cosign"
@@ -232,6 +233,10 @@ func (v *Verifier) getCheckOpts(ctx context.Context, policy config.RegistryPolic
 	if err != nil {
 		return nil, err
 	}
+	if f, ok := os.LookupEnv("DOCKER_CONFIG"); ok && policy.Provider == config.ProviderOpenRegistry {
+		v.Logger.Debug("docker_config environment variable found loading for open-provider", "content", f)
+		opts = append(opts, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	}
 	opts = append(opts, opt)
 
 	if policy.PublicKey != "" {
@@ -250,7 +255,7 @@ func (v *Verifier) getCheckOpts(ctx context.Context, policy config.RegistryPolic
 		}
 
 		return checkOpts, nil
-	} else if policy.Identity != "" {
+	} else if policy.Identity != "" || policy.IdentityRegex != "" {
 		v.Logger.Debug("using identity in checkopts")
 		if err := tuf.Initialize(ctx, tuf.DefaultRemoteRoot, nil); err != nil {
 			return nil, err

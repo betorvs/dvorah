@@ -86,49 +86,19 @@ graph LR
 
 ## Quick Start
 
-### Prerequisites
-
 ```bash
-# Install required tools
-task dependencies-install-mac
+kubectl create namespace dvorah
+bash scripts/certs.sh # generate local certificates using openssl
+helm template dvorah charts/dvorah --set validatingWebhook.caBundle="$(cat tls.crt | base64 )" --set args.policyConfig=true --set env.enabled=true --namespace dvorah > manifests-dvorah.yaml
 ```
 
-### Deploying to Kubernetes
+Review `manifests-dvorah.yaml` file and edit `dvorah-config` config map to match your own cosign certificates or configurations.
 
 ```bash
-# 1. Create development environment
-task dev-create
-
-# 2. Deploy dvorah admission controller
-task dvorah-deploy
-
-# 3. Verify deployment
-kubectl get pods -n dvorah
+kubectl apply -n dvorah -f manifests-dvorah.yaml
 ```
 
-### Configuration
-
-#### Key Configuration Options
-- `-log-level`: Set logging level (`info` or `debug`)
-- `-policy-config=config.yaml`: YAML config file for admission policy rules.
-- `-mode`: [DEPRECATED] Set to `deny` (block unsigned images) or `audit` (log only)
-- `-registry`: [DEPRECATED] Specify allowed ECR registries (comma-separated)
-- `-public-key`: [DEPRECATED] Path to Cosign public key for signature verification
-
-### Testing
-
-```bash
-# Test dvorah with cosign review
-task dvorah-test-cosign
-```
-
-### Monitoring
-
-```bash
-# Check metrics
-kubectl port-forward -n dvorah service/dvorah 8080:8080
-curl http://localhost:8080/metrics
-```
+More information about configurations [here](./docs/Configurations.md).
 
 ### Check image
 

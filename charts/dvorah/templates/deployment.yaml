@@ -70,6 +70,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            {{- if .Values.dockerSecret.enabled }}
+            - name: DOCKER_CONFIG
+              value: /.docker/
+            {{- end }}
             {{- with .Values.env.content }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -97,9 +101,17 @@ spec:
             - name: dvorah-certs
               mountPath: "/etc/dvorah/certs"
               readOnly: true
+            {{- if not .Values.dockerSecret.enabled }}
             - mountPath: /.docker/config.json
               name: dvorah-config-volume
               subPath: config.json
+            {{- end }}
+            {{- if .Values.dockerSecret.enabled }}
+            - name: dvorah-secret
+              mountPath: "/.docker/config.json"
+              subPath: config.json
+              readOnly: true
+            {{- end }}
             {{- if not .Values.args.policyConfig }}
             - mountPath: /cosign/cosign.pub
               name: dvorah-config-volume
@@ -117,12 +129,22 @@ spec:
         - name: dvorah-certs
           secret:
             secretName: dvorah-certificates
+        {{- if .Values.dockerSecret.enabled }}
+        - name: dvorah-secret
+          secret:
+            secretName: {{ .Values.dockerSecret.name }}
+            items:
+            - key: .dockerconfigjson
+              path: config.json
+        {{- end }}
         - name: dvorah-config-volume
           configMap:
             name: dvorah-config
             items:
+            {{- if not .Values.dockerSecret.enabled }}
             - key: docker-config.json
               path: docker-config.json
+            {{- end }}
             {{- if not .Values.args.policyConfig }}
             - key: cosign.pub
               path: cosign.pub
