@@ -15,6 +15,7 @@ tasks:
       - brew install helm
       - brew install tilt-dev/tap/ctlptl
       - brew install golangci-lint
+      - go install github.com/securego/gosec/v2/cmd/gosec@latest
 
   tidy:
     desc: update dependencies and tidy go modules 
@@ -26,6 +27,11 @@ tasks:
     desc: Run linters
     cmds:
       - golangci-lint run
+
+  sec:
+    desc: run gosec 
+    cmds:
+      - gosec ./...
 
   dev-create:
     desc: create a kind cluster (change to kind context)
@@ -43,6 +49,8 @@ tasks:
 
   dvorah-deploy:
     desc: Deploy dvorah
+    aliases:
+      - deploy
     cmds:
       - docker build --build-arg VERSION={{.VERSION}} -t dvorah/dvorah:{{.VERSION}} -f Dockerfiles/dvorah/Dockerfile .
       - docker tag dvorah/dvorah:{{.VERSION}} localhost:5005/dvorah/dvorah:{{.VERSION}}
@@ -58,16 +66,22 @@ tasks:
 
   dvorah-delete:
     desc: Delete dvorah
+    aliases:
+      - delete
     cmds:
       - kubectl delete -f manifests-dvorah.yaml -n dvorah
 
   dvorah-logs:
     desc: Get logs from pod in Kind 
+    aliases:
+      - logs
     cmds:
       - kubectl logs -n dvorah -l app.kubernetes.io/name=dvorah
   
   dvorah-test-cosign:
     desc: Test dvorah with cosign review
+    aliases:
+      - cosign
     cmds:
       - kubectl exec -ti -n dvorah $(kubectl get pods -n dvorah | grep dvorah | awk '{print $1}') -- /bin/bee
 
@@ -81,6 +95,8 @@ tasks:
 
   dvorah-e2e-test:
     desc: go e2e test
+    aliases:
+      - e2e
     cmds:
       - docker build -t betorvs/dvorah:{{.VERSION}} -f Dockerfiles/dvorah/Dockerfile .
       - VERSION={{ .VERSION }} go test -count=1 -timeout=10m -v bee_guard_test.go
