@@ -1,3 +1,13 @@
+/*
+NOTE: INTERNAL UTILITY ONLY
+This 'bee' command is a private, internal component of the Dvorah project.
+It is specifically designed for internal testing and verification purposes
+within the Dvorah hive and is NOT intended to be a standalone or independent tool.
+
+DISCLAIMER: Despite the name, this utility has no association with the
+Cilium project or its ecosystem. The name 'bee' is used here solely to
+maintain Dvorah's hive-themed internal nomenclature.
+*/
 package main
 
 import (
@@ -9,7 +19,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -33,8 +45,8 @@ func main() {
 
 func run() error {
 	job := flag.String("job", "cosign-review", "job to run: [cosign-review, warmup]")
-	caFile := flag.String("ca-file", "./tls.crt", "File containing the x509 Certificate for HTTPS.")
-	skip := flag.Bool("skip", true, "Skip certificate verification for testing purposes.")
+	caFile := flag.String("ca-file", "/etc/dvorah/certs/tls.crt", "File containing the x509 Certificate for HTTPS.")
+	skip := flag.Bool("skip", false, "Skip certificate verification for debugging purposes.")
 	protocol := flag.String("protocol", "https", "Protocol to use: [http, https]")
 	service := flag.String("service", "dvorah.dvorah.svc", " Service to connect to")
 	port := flag.Int("port", 443, "Port to connect to (localhost test used 8443)")
@@ -71,7 +83,7 @@ func run() error {
 	case "cosign-review":
 		if *skip {
 			c.Web.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 : in cases that does not know which ca-file to load
 			}
 			*caFile = ""
 		}
@@ -90,7 +102,7 @@ func run() error {
 	case "warmup":
 		if *skip {
 			c.Web.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 : in cases that does not know which ca-file to load
 			}
 			*caFile = ""
 		}
@@ -118,11 +130,15 @@ type Client struct {
 }
 
 func (c Client) Request(serverURL, method string, body io.Reader) ([]byte, int, error) {
-	req, err := http.NewRequest(method, serverURL, body)
+	service, err := parseService(serverURL)
 	if err != nil {
 		return []byte{}, 0, err
 	}
-	res, err := c.Web.Do(req)
+	req, err := http.NewRequest(method, service, body) // #nosec G704 :service variable already parsed
+	if err != nil {
+		return []byte{}, 0, err
+	}
+	res, err := c.Web.Do(req) // #nosec G704 :service variable already parsed
 	if err != nil {
 		return []byte{}, 0, err
 	}
@@ -675,7 +691,8 @@ func generateResourceConfig(resourceKind, imageFormat string) ResourceConfig {
 }
 
 func genCertPool(f string) (*x509.CertPool, error) {
-	caFile, err := os.ReadFile(f)
+	pathClean := filepath.Clean(f)
+	caFile, err := os.ReadFile(pathClean)
 	if err != nil {
 		fmt.Println("Error reading ca file", err)
 		return nil, err
@@ -690,4 +707,21 @@ func genCertPool(f string) (*x509.CertPool, error) {
 		return nil, err
 	}
 	return certPool, nil
+}
+
+func parseService(service string) (string, error) {
+	svc, err := url.Parse(service)
+	if err != nil {
+		return "", err
+	}
+	if svc.Hostname() == "localhost" {
+		return service, nil
+	}
+	allowedSuffix := []string{"svc", "cluster.local"}
+	for _, suffix := range allowedSuffix {
+		if strings.HasSuffix(svc.Hostname(), suffix) {
+			return service, nil
+		}
+	}
+	return "", fmt.Errorf("invalid service")
 }

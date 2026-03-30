@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -52,7 +53,8 @@ func New(inCluster bool, policyFile string) *DvorahConfig {
 
 // Reload reads config.yaml configuration file
 func (c *DvorahConfig) Reload(filePath string) error {
-	data, err := os.ReadFile(filePath)
+	pathClean := filepath.Clean(filePath)
+	data, err := os.ReadFile(pathClean)
 	if err != nil {
 		return fmt.Errorf("could not read config file: %w", err)
 	}

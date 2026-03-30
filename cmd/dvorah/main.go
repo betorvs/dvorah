@@ -144,8 +144,9 @@ func main() {
 
 	handler := otelhttp.NewHandler(mux, "/")
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%v", *port),
-		Handler: handler,
+		Addr:              fmt.Sprintf(":%v", *port),
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	admMux := http.NewServeMux()
@@ -157,8 +158,9 @@ func main() {
 		}
 	})
 	admServer := &http.Server{
-		Addr:    fmt.Sprintf(":%v", *admPort),
-		Handler: admMux,
+		Addr:              fmt.Sprintf(":%v", *admPort),
+		Handler:           admMux,
+		ReadHeaderTimeout: 5 * time.Second, // FIXES G112
 	}
 	go func() {
 		if err := admServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {

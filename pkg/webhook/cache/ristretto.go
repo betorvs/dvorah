@@ -2,7 +2,9 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	"github.com/betorvs/dvorah/pkg/webhook/metrics"
@@ -33,7 +35,12 @@ func (r *ristrettoCache) Len() int {
 	if r.cache.Metrics == nil {
 		return 0
 	}
-	return int(r.cache.Metrics.KeysAdded() - r.cache.Metrics.KeysEvicted())
+	value := r.cache.Metrics.KeysAdded() - r.cache.Metrics.KeysEvicted()
+	v, err := checkMax(value)
+	if err != nil {
+		return 0
+	}
+	return int(v) //
 }
 
 // need to implement this for the cache interface
@@ -54,12 +61,24 @@ func (r *ristrettoMetricsCollector) collect(ctx context.Context) {
 		return
 	}
 	// Record all metrics at once during collection
-	metrics.RecordCacheHit(ctx, r.cacheType, int64(r.cache.Metrics.Hits()))
-	metrics.RecordCacheMiss(ctx, r.cacheType, int64(r.cache.Metrics.Misses()))
+	hits, err := checkMax(r.cache.Metrics.Hits())
+	if err != nil {
+		return
+	}
+	misses, err := checkMax(r.cache.Metrics.Misses())
+	if err != nil {
+		return
+	}
+	metrics.RecordCacheHit(ctx, r.cacheType, hits)    //
+	metrics.RecordCacheMiss(ctx, r.cacheType, misses) //
 	metrics.RecordCacheHitsRatio(ctx, r.cacheType, r.cache.Metrics.Ratio())
 	// Record current entries
-	entriesCount := r.cache.Metrics.KeysAdded() - r.cache.Metrics.KeysEvicted()
-	metrics.RecordCacheEntries(ctx, r.cacheType, int64(entriesCount))
+	entriesCalc := r.cache.Metrics.KeysAdded() - r.cache.Metrics.KeysEvicted()
+	entriesCount, err := checkMax(entriesCalc)
+	if err != nil {
+		return
+	}
+	metrics.RecordCacheEntries(ctx, r.cacheType, entriesCount) //
 }
 
 func NewRistrettoCache(maxSize int, ttl time.Duration, cacheType string, logger *slog.Logger) CacheInterface {
@@ -103,4 +122,11 @@ func newRistrettoMetricsCollector(cache *ristretto.Cache[string, CacheEntry], ca
 	go collector.startCollection()
 
 	return collector
+}
+
+func checkMax(v uint64) (int64, error) {
+	if v > math.MaxInt64 {
+		return 0, fmt.Errorf("cannot convert uint64 to int64")
+	}
+	return int64(v), nil
 }

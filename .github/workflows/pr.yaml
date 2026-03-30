@@ -18,14 +18,17 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417  # v6.3.0
         with:
-          go-version: '1.26'
+          go-version: '1.26.1'
           cache: false
-      # https://github.com/golangci/golangci-lint-action/issues/953
       - name: golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20  # v9.2.0
         with:
           version: v2.11
           args: --timeout=10m
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@223e19b8856e00f02cc67804499a83f77e208f3c # v2.25.0
+        with:
+          args: ./...
   e2e-test:
     runs-on: ubuntu-latest
     permissions:

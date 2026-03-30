@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/betorvs/dvorah/pkg/config"
@@ -356,7 +357,8 @@ func validAttestations(ctx context.Context, ref name.Reference, checkOpts *cosig
 }
 
 func loadPublicKey(path string) (signature.Verifier, error) {
-	pubKey, err := os.ReadFile(path)
+	pathClean := filepath.Clean(path)
+	pubKey, err := os.ReadFile(pathClean)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read public key file: %v", err)
 	}
