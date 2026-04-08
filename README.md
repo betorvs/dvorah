@@ -146,6 +146,14 @@ cosign verify "ghcr.io/betorvs/dvorah@TAG" \
 --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 ```
 
+## 🤝 Contributing
+
+We welcome contributions to the **Dvorah** hive! Whether you are fixing a bug, suggesting a new feature, or improving the documentation, your help is essential to keep our "precision scalpel" sharp.
+
+Before getting started, please check our [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on development environment setup, coding standards, and our pull request process.
+
+Let's build a more secure container supply chain together! 🐝
+
 
 ### License
 
