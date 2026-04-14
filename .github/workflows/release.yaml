@@ -60,7 +60,7 @@ jobs:
             custom.cosign.verify-command=cosign verify ghcr.io/${{ github.repository }}:TAG --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 
       - name: Build and Push container images
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         id: build-and-push
         with:
           context: .
