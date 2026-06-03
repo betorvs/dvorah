@@ -167,16 +167,6 @@ func (v *Validator) isAllowedRegistry(image string) bool {
 	return false
 }
 
-func (v *Validator) reduceExternalImages(external []string) []string {
-	newList := []string{}
-	for _, e := range external {
-		if !v.isImageAllowed(e) {
-			newList = append(newList, e)
-		}
-	}
-	return newList
-}
-
 func (v *Validator) isImageAllowed(image string) bool {
 	for _, v := range v.verifier.Config.GlobalAllowedImages {
 		if image == v {
