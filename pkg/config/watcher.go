@@ -41,7 +41,6 @@ func (c *DvorahConfig) WatchConfig(ctx context.Context, filePath string, logger 
 				return nil
 			}
 
-			// O K8s sinaliza mudanças criando/removendo symlinks (..data)
 			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 				if filepath.Base(event.Name) == filepath.Base(filePath) || strings.Contains(event.Name, "..data") {
 					logger.Info("Policy file change detected. Reloading...")

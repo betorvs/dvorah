@@ -167,6 +167,15 @@ func (v *Validator) isAllowedRegistry(image string) bool {
 	return false
 }
 
+func (v *Validator) isImageAllowed(image string) bool {
+	for _, v := range v.verifier.Config.GlobalAllowedImages {
+		if image == v {
+			return true
+		}
+	}
+	return false
+}
+
 func (v *Validator) handleFailedVerification(w http.ResponseWriter, review *admissionv1.AdmissionReview, image, mode string, err error) {
 
 	message := "Failed to verify signature for image: " + image
@@ -239,7 +248,12 @@ func (v *Validator) extractImagesFromAdmissionReview(raw []byte, kind string) (i
 
 	externalImages = make([]string, 0, len(uniqueExternalImages))
 	for image := range uniqueExternalImages {
-		externalImages = append(externalImages, image)
+		// add globalAllowedImages verification here to decrease number of external images that should be allowed.
+		if !v.isImageAllowed(image) {
+			externalImages = append(externalImages, image)
+		} else {
+			v.logger.Debug("image allowed by global config", "image", image)
+		}
 	}
 	v.logger.Debug("resource metadata owner references", "owner references", resource.Metadata.OwnerReferences)
 	return internalImages, externalImages, resource.Metadata, nil

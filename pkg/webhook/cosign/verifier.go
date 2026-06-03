@@ -182,17 +182,34 @@ func (v *Verifier) VerifySignature(image string) (bool, string, string, error) {
 	return false, "", policy.Mode, nil
 }
 
+var supportedCrytoHashes = map[string]crypto.Hash{
+	"sha224": crypto.SHA224,
+	"sha256": crypto.SHA256,
+	"sha384": crypto.SHA384,
+	"sha512": crypto.SHA512,
+}
+
 func (v *Verifier) getVerifier(policy config.RegistryPolicy) (signature.Verifier, error) {
 	if policy.PublicKey != "" {
+		cryptoHash := crypto.SHA256
+		if policy.PublicKeyHash != "" {
+			publicKeyHash := strings.ToLower(policy.PublicKeyHash)
+			c, ok := supportedCrytoHashes[publicKeyHash]
+			if ok {
+				cryptoHash = c
+			} else {
+				v.Logger.Error("publicKeyHash invalid", "policy_name", policy.Name, "public_key_hash", policy.PublicKeyHash, "allowed_hashes", supportedCrytoHashes)
+			}
+		}
 		// Check if string starts with - or /
 		if strings.HasPrefix(strings.TrimSpace(policy.PublicKey), "-----BEGIN PUBLIC KEY-----") {
 			pk, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(policy.PublicKey))
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse public key: %v", err)
 			}
-			return signature.LoadVerifier(pk, crypto.SHA256)
+			return signature.LoadVerifier(pk, cryptoHash)
 		}
-		return loadPublicKey(policy.PublicKey)
+		return loadPublicKey(policy.PublicKey, cryptoHash)
 	}
 	return nil, nil
 
@@ -356,7 +373,7 @@ func validAttestations(ctx context.Context, ref name.Reference, checkOpts *cosig
 	return sigs, err
 }
 
-func loadPublicKey(path string) (signature.Verifier, error) {
+func loadPublicKey(path string, cryptoHash crypto.Hash) (signature.Verifier, error) {
 	pathClean := filepath.Clean(path)
 	pubKey, err := os.ReadFile(pathClean)
 	if err != nil {
@@ -368,7 +385,7 @@ func loadPublicKey(path string) (signature.Verifier, error) {
 		return nil, fmt.Errorf("failed to parse public key: %v", err)
 	}
 
-	verifier, err := signature.LoadVerifier(pk, crypto.SHA256)
+	verifier, err := signature.LoadVerifier(pk, cryptoHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create verifier from public key: %v", err)
 	}
