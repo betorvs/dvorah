@@ -102,7 +102,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Debug("allowed", "registries", cfg.GetAllowedRegistries())
+	logger.Debug("global registries config", "registries", cfg.GetAllowedRegistries())
+	logger.Debug("global allowed images config", "images", cfg.GlobalAllowedImages)
 
 	if v, ok := os.LookupEnv("DVORAH_NAMESPACE"); ok {
 		*dvorahDeploymentNamespace = v

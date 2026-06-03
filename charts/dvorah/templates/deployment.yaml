@@ -66,6 +66,8 @@ spec:
             {{- end }}
           {{- if .Values.env.enabled }}
           env:
+            - name: HOME
+              value: /home/dvorah
             - name: DVORAH_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -101,6 +103,8 @@ spec:
             - name: dvorah-certs
               mountPath: "/etc/dvorah/certs"
               readOnly: true
+            - name: dvorah-home 
+              mountPath: /home/dvorah
             {{- if not .Values.dockerSecret.enabled }}
             - mountPath: /.docker/config.json
               name: dvorah-config-volume
@@ -129,6 +133,8 @@ spec:
         - name: dvorah-certs
           secret:
             secretName: dvorah-certificates
+        - name: dvorah-home
+          emptyDir: {}
         {{- if .Values.dockerSecret.enabled }}
         - name: dvorah-secret
           secret:

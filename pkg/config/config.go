@@ -21,13 +21,14 @@ const (
 )
 
 type RegistryPolicy struct {
-	Name          string   `yaml:"name"`                 // Ex: "aws"
-	Pattern       string   `yaml:"pattern"`              // Ex: "*.dkr.ecr.us-east-1.amazonaws.com"
-	PublicKey     string   `yaml:"publicKey,omitempty"`  // Public Key
-	Provider      string   `yaml:"provider"`             // provider to connect
-	Mode          string   `yaml:"mode"`                 // "deny" ou "audit"
-	InCluster     bool     `yaml:"incluster"`            // in cluster bool
-	Registries    []string `yaml:"registries,omitempty"` // allowed registries
+	Name          string   `yaml:"name"`                    // Ex: "aws"
+	Pattern       string   `yaml:"pattern"`                 // Ex: "*.dkr.ecr.us-east-1.amazonaws.com"
+	PublicKey     string   `yaml:"publicKey,omitempty"`     // Public Key
+	PublicKeyHash string   `yaml:"publicKeyHash,omitempty"` // default to sha256
+	Provider      string   `yaml:"provider"`                // provider to connect
+	Mode          string   `yaml:"mode"`                    // "deny" ou "audit"
+	InCluster     bool     `yaml:"incluster"`               // in cluster bool
+	Registries    []string `yaml:"registries,omitempty"`    // allowed registries
 	Identity      string   `yaml:"identity,omitempty"`
 	IdentityRegex string   `yaml:"identity_regex,omitempty"`
 	Issuer        string   `yaml:"issuer,omitempty"`
@@ -35,13 +36,14 @@ type RegistryPolicy struct {
 }
 
 type DvorahConfig struct {
-	GlobalMode       string           `yaml:"globalMode"`
-	GlobalPublicKey  string           `yaml:"globalPublicKey"`
-	GlobalProvider   string           `yaml:"globalProvider"`
-	GlobalRegistries []string         `yaml:"globalRegistries,omitempty"` // allowed registry list: it makes Dvorah fails fast in case a unknown registry in kubernetes
-	Policies         []RegistryPolicy `yaml:"policies"`
-	InCluster        bool             `yaml:"inCluster"`
-	mu               sync.RWMutex
+	GlobalMode          string           `yaml:"globalMode"`
+	GlobalPublicKey     string           `yaml:"globalPublicKey"`
+	GlobalProvider      string           `yaml:"globalProvider"`
+	GlobalRegistries    []string         `yaml:"globalRegistries,omitempty"`    // allowed registry list: it makes Dvorah fails fast in case a unknown registry in kubernetes
+	GlobalAllowedImages []string         `yaml:"globalAllowedImages,omitempty"` // allowed image:tag list to bypass verification. Usefull during migrations.
+	Policies            []RegistryPolicy `yaml:"policies"`
+	InCluster           bool             `yaml:"inCluster"`
+	mu                  sync.RWMutex
 }
 
 // New returns a DvorahConfig instance
@@ -88,11 +90,22 @@ func (c *DvorahConfig) Reload(filePath string) error {
 	if len(newCfg.GlobalRegistries) < 1 {
 		return fmt.Errorf("invalid number of allowed registries")
 	}
+	allowedImages := []string{}
+	if len(newCfg.GlobalAllowedImages) > 0 {
+		image := []string{}
+		for _, v := range newCfg.GlobalAllowedImages {
+			if strings.Contains(v, ":") {
+				image = append(image, v)
+			}
+		}
+		allowedImages = image
+	}
 
 	c.GlobalMode = newCfg.GlobalMode
 	c.GlobalPublicKey = newCfg.GlobalPublicKey
 	c.GlobalProvider = newCfg.GlobalProvider
 	c.GlobalRegistries = newCfg.GlobalRegistries
+	c.GlobalAllowedImages = allowedImages
 	c.Policies = newCfg.Policies
 
 	return nil
