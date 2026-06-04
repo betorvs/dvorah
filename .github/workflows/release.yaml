@@ -88,3 +88,19 @@ jobs:
           cosign verify "${IMAGE_NAME}@${DIGEST}" \
           --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release.yaml@refs/(heads/main|tags/.*)" \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+
+      - name: Package chart
+        run: helm package ./charts/dvorah
+
+      - name: Login to GHCR
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
+        
+      - name: Push chart
+        run: |
+          helm push dvorah-*.tgz oci://ghcr.io/${{ github.repository_owner }}/charts

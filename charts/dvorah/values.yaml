@@ -119,6 +119,7 @@ dockerConfig: |
 
 certificate:
   enabled: false
+  clusterIssuer: root-ca-issuer
 
 cosign:
   publicKey: |

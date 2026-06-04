@@ -5,8 +5,7 @@ apiVersion: admissionregistration.k8s.io/v1
 metadata:
   name: {{ include "dvorah.fullname" . }}
   annotations:
-    # Inject from ca-root Certificate in devops namespace (our cert-manager namespace)
-    cert-manager.io/inject-ca-from: devops/ca-root
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace | default "dvorah" }}/dvorah-certificates
   labels:
     {{- include "dvorah.labels" . | nindent 4 }}
 webhooks:
