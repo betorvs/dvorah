@@ -17,7 +17,7 @@ spec:
     - {{ include "dvorah.fullname" . }}.{{ .Release.Namespace | default "dvorah" }}.svc
     - {{ .Release.Name }}.{{ .Release.Namespace | default "dvorah" }}.svc.cluster.local
   issuerRef:
-    name: ca-root
+    name: {{ .Values.certificate.clusterIssuer }}
     kind: ClusterIssuer
   privateKey:
     algorithm: RSA
