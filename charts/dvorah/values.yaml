@@ -120,6 +120,9 @@ dockerConfig: |
 certificate:
   enabled: false
   clusterIssuer: root-ca-issuer
+  webhookConfig:
+    key: cert-manager.io/inject-ca-from
+    value: dvorah/dvorah-certificates
 
 cosign:
   publicKey: |

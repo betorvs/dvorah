@@ -5,7 +5,7 @@ apiVersion: admissionregistration.k8s.io/v1
 metadata:
   name: {{ include "dvorah.fullname" . }}
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace | default "dvorah" }}/dvorah-certificates
+    {{ .Values.certificate.webhookConfig.key }}: {{ .Values.certificate.webhookConfig.value }}
   labels:
     {{- include "dvorah.labels" . | nindent 4 }}
 webhooks:
