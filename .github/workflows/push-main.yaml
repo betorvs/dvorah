@@ -120,5 +120,5 @@ jobs:
           cosign sign --yes "${IMAGE_NAME}@${DIGEST}"
           
           cosign verify "${IMAGE_NAME}@${DIGEST}" \
-          --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.github/workflows/pr.yaml@refs/pull/.*/merge$" \
+          --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.github/workflows/push-main.yaml@refs/heads/main" \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com
