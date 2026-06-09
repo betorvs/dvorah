@@ -122,9 +122,8 @@ spec:
               subPath: cosign.pub
             {{- end}}
             {{- if .Values.args.policyConfig }}
-            - mountPath: /config/config.yaml
+            - mountPath: /config/
               name: dvorah-config-volume
-              subPath: config.yaml
             {{- end}}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
