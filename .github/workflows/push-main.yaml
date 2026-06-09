@@ -165,6 +165,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add charts/
           # Only commit and push if there are actual differences to avoid workflow failure
           git diff-index --quiet HEAD || (git commit -m "chore: automated file update" && git push)
