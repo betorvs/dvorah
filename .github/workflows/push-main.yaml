@@ -122,3 +122,49 @@ jobs:
           cosign verify "${IMAGE_NAME}@${DIGEST}" \
           --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.github/workflows/push-main.yaml@refs/heads/main" \
           --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+  semver:
+    name: semver
+    needs: ["build-image"]
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+
+      - name: Bump version
+        id: bump_version 
+        run: |
+          echo "Install semver"
+          npm install semver
+          ls -la $(pwd)/node_modules/semver/bin/
+          export SEMVER_BIN=$(pwd)/node_modules/semver/bin/semver.js
+          $SEMVER_BIN
+          echo "semver installed: $SEMVER_BIN"
+          export CHART_FILE="charts/sec-policies/Chart.yaml"
+          export CURRENT_VERSION=$(yq e '.version' "$CHART_FILE")
+          COMMIT_MESSAGE=$(git log --no-merges -1 --pretty=%B | head -1)
+          
+          if [[ "$COMMIT_MESSAGE" == *"feat(major)"* ]]; then
+            NEW_VERSION=$($SEMVER_BIN bump -i major "$CURRENT_VERSION")
+          elif [[ "$COMMIT_MESSAGE" == *"feat"* ]]; then
+            NEW_VERSION=$($SEMVER_BIN bump -i minor "$CURRENT_VERSION")
+          else
+            NEW_VERSION=$($SEMVER_BIN bump -i patch "$CURRENT_VERSION")
+          fi
+          echo $CHART_FILE $CURRENT_VERSION $COMMIT_MESSAGE $NEW_VERSION
+          yq e -i ".version = \"$NEW_VERSION\"" "$CHART_FILE"
+          yq e -i ".appVersion = \"$NEW_VERSION\"" "$CHART_FILE"
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
+          echo "CHART_NAME=$CHART_NAME" >> "$GITHUB_ENV"
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> "$GITHUB_ENV"
+
+      - name: commit and push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          # Only commit and push if there are actual differences to avoid workflow failure
+          git diff-index --quiet HEAD || (git commit -m "chore: automated file update" && git push)
