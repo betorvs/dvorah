@@ -143,7 +143,7 @@ jobs:
           export SEMVER_BIN=$(pwd)/node_modules/semver/bin/semver.js
           $SEMVER_BIN
           echo "semver installed: $SEMVER_BIN"
-          export CHART_FILE="charts/sec-policies/Chart.yaml"
+          export CHART_FILE="charts/dvorah/Chart.yaml"
           export CURRENT_VERSION=$(yq e '.version' "$CHART_FILE")
           COMMIT_MESSAGE=$(git log --no-merges -1 --pretty=%B | head -1)
           
