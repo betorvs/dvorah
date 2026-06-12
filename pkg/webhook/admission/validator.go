@@ -102,6 +102,17 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 		v.logger.Error("Found external images that will not be validated",
 			"images", externalImages, "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind)
 		mode := v.verifier.Config.GetGlobalMode()
+		counter := 0
+		for _, img := range externalImages {
+			if !v.isImageAllowed(img) {
+				counter++
+			} else {
+				v.logger.Debug("global allowed images config verification", "image", img)
+			}
+		}
+		if counter == 0 {
+			mode = config.ModeAudit
+		}
 		v.handleFailedVerification(w, &admissionReview, fmt.Sprintf("%v", externalImages), mode, fmt.Errorf("found external images that will not be validated"))
 		return
 	}
@@ -248,12 +259,7 @@ func (v *Validator) extractImagesFromAdmissionReview(raw []byte, kind string) (i
 
 	externalImages = make([]string, 0, len(uniqueExternalImages))
 	for image := range uniqueExternalImages {
-		// add globalAllowedImages verification here to decrease number of external images that should be allowed.
-		if !v.isImageAllowed(image) {
-			externalImages = append(externalImages, image)
-		} else {
-			v.logger.Debug("image allowed by global config", "image", image)
-		}
+		externalImages = append(externalImages, image)
 	}
 	v.logger.Debug("resource metadata owner references", "owner references", resource.Metadata.OwnerReferences)
 	return internalImages, externalImages, resource.Metadata, nil
