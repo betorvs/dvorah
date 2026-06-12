@@ -1,6 +1,6 @@
 # Dvorah: Multi-Registry Admission Controller
 
-[![build-sign-publish](https://github.com/betorvs/dvorah/actions/workflows/release.yaml/badge.svg?branch=main)](https://github.com/betorvs/dvorah/actions/workflows/release.yaml)
+[![build-sign-publish](https://github.com/betorvs/dvorah/actions/workflows/release.yaml/badge.svg)](https://github.com/betorvs/dvorah/actions/workflows/release.yaml)
 
 
 **Dvorah** is a lightweight, stateless Kubernetes Admission Controller focused on image signature verification using **Cosign**. 
