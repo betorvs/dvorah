@@ -116,7 +116,11 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 				filteredExternalImages = append(filteredExternalImages, img)
 			}
 		}
-		v.handleFailedVerification(w, &admissionReview, fmt.Sprintf("%v", filteredExternalImages), mode, fmt.Errorf("found external images that will not be validated"))
+		images := ""
+		if len(filteredExternalImages) > 0 {
+			images = fmt.Sprintf("%v", filteredExternalImages)
+		}
+		v.handleFailedVerification(w, &admissionReview, images, mode, fmt.Errorf("found external images that will not be validated"))
 		return
 	}
 
@@ -192,9 +196,9 @@ func (v *Validator) isImageAllowed(image string) bool {
 
 func (v *Validator) handleFailedVerification(w http.ResponseWriter, review *admissionv1.AdmissionReview, image, mode string, err error) {
 
-	message := "Failed to verify signature for image: " + image
-	if err != nil {
-		message = "Invalid signature: " + err.Error() + " for image: " + image
+	message := "error " + err.Error()
+	if image != "" {
+		message += " and image information " + image
 	}
 
 	// If audit mode
