@@ -116,7 +116,7 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 				filteredExternalImages = append(filteredExternalImages, img)
 			}
 		}
-		v.handleFailedVerification(w, &admissionReview, fmt.Sprintf("%v", externalImages), mode, fmt.Errorf("found external images that will not be validated"))
+		v.handleFailedVerification(w, &admissionReview, fmt.Sprintf("%v", filteredExternalImages), mode, fmt.Errorf("found external images that will not be validated"))
 		return
 	}
 
