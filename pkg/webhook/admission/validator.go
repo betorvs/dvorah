@@ -77,17 +77,25 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 		v.sendResponse(w, &admissionReview, true, "Skipping signature verification for dvorah's own pod")
 		return
 	}
+	mode := v.verifier.Config.GetGlobalMode()
+	defaultRejection := false
+	if mode == config.ModeAudit {
+		v.logger.Info("change the default rejection behaviour to allow because of the global mode audit")
+		defaultRejection = true
+	}
 
 	internalImages, externalImages, objectMetadata, err := v.extractImagesFromAdmissionReview(admissionReview.Request.Object.Raw, admissionReview.Request.Kind.Kind)
 	if err != nil {
 		v.logger.Error("Failed to extract images", "error", err)
-		v.sendResponse(w, &admissionReview, false, fmt.Sprintf("Failed to extract images: %v", err))
+		// Dvorah used to reject all these requests by default. However, if global mode is in audit mode, it will allow them to pass
+		v.sendResponse(w, &admissionReview, defaultRejection, fmt.Sprintf("Failed to extract images: %v", err))
 		return
 	}
 
 	if len(internalImages) == 0 && len(externalImages) == 0 {
 		v.logger.Debug("No images found in resource")
-		v.sendResponse(w, &admissionReview, false, "No images found in resource")
+		// Dvorah used to reject all these requests by default. However, if global mode is in audit mode, it will allow them to pass
+		v.sendResponse(w, &admissionReview, defaultRejection, "No images found in resource")
 		return
 	}
 
@@ -101,17 +109,12 @@ func (v *Validator) ValidateAdmission(w http.ResponseWriter, r *http.Request) {
 		}
 		v.logger.Error("Found external images that will not be validated",
 			"images", externalImages, "namespace", admissionReview.Request.Namespace, "name", admissionReview.Request.Name, "kind", admissionReview.Request.Kind.Kind)
-		mode := v.verifier.Config.GetGlobalMode()
-		counter := 0
+		// Before rejecting external images, Dvorah checks whether this is permitted in the global configuration
+		filteredExternalImages := []string{}
 		for _, img := range externalImages {
 			if !v.isImageAllowed(img) {
-				counter++
-			} else {
-				v.logger.Debug("global allowed images config verification", "image", img)
+				filteredExternalImages = append(filteredExternalImages, img)
 			}
-		}
-		if counter == 0 {
-			mode = config.ModeAudit
 		}
 		v.handleFailedVerification(w, &admissionReview, fmt.Sprintf("%v", externalImages), mode, fmt.Errorf("found external images that will not be validated"))
 		return
