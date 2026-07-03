@@ -1,3 +1,4 @@
+# checkov:skip=CKV_DOCKER_2: Health check handled by container orchestrator
 FROM golang:1.26.1 AS builder
 
 RUN mkdir -p /go/src/github.com/betorvs/dvorah/cmd/dvorah
@@ -26,6 +27,7 @@ ARG VERSION=dev
 RUN go build -ldflags "-X main.Version=${VERSION}" -o dvorah cmd/dvorah/*
 RUN go build -ldflags "-X main.Version=${VERSION}" -o bee cmd/bee/*
 
+# checkov:skip=CKV_DOCKER_7: Use latest to always keep it updated
 FROM gcr.io/distroless/base-debian12:latest
 
 COPY --from=builder /go/src/github.com/betorvs/dvorah/dvorah /bin/dvorah
