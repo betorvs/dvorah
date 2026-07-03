@@ -8,6 +8,10 @@ on:
       - reopened
       - synchronize
 
+# Fixes CKV2_GHA_1 by locking down top-level defaults
+permissions:
+  contents: read
+
 jobs:
   golangci:
     name: lint
