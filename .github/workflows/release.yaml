@@ -4,6 +4,10 @@ on:
   release:
     types: [ created ]
 
+# Fixes CKV2_GHA_1 by locking down top-level defaults
+permissions:
+  contents: read
+
 jobs:
   build-image:
     runs-on: ubuntu-latest

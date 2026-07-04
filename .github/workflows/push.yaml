@@ -5,6 +5,10 @@ on:
     branches-ignore:
       - "main"
 
+# Fixes CKV2_GHA_1 by locking down top-level defaults
+permissions:
+  contents: read
+
 jobs:
   golangci:
     name: lint
@@ -33,3 +37,19 @@ jobs:
         run: |
           helm lint ./charts/dvorah
           helm template dvorah ./charts/dvorah
+  scan:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Checkov GitHub Action
+        uses: bridgecrewio/checkov-action@a7683e7b72a04503521247973281ec8142e1ac1f # v12.3112.0
+        with:
+          # This will add both a CLI output to the console and create a results.sarif file
+          output_format: cli
+          output_file_path: console
+        env:
+          HELM_NAMESPACE: dvorah
