@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "dvorah.fullname" . }}
+  namespace: {{ .Release.Namespace | default "dvorah" }}
   labels:
     {{- include "dvorah.labels" . | nindent 4 }}
 spec:
@@ -28,6 +29,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "dvorah.serviceAccountName" . }}
+      automountServiceAccountToken: false
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}

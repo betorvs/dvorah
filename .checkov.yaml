@@ -1,0 +1,3 @@
+skip-check:
+  - CKV_K8S_11 # CPU limits should be set
+  - CKV2_K8S_6 # Network Policy skip

@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "dvorah.fullname" . }}
+  namespace: {{ .Release.Namespace | default "dvorah" }}
   labels:
     {{- include "dvorah.labels" . | nindent 4 }}
 spec:

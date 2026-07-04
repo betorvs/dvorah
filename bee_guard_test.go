@@ -69,7 +69,7 @@ func TestExample(t *testing.T) {
 				t.Fatalf("Failed to read tls certificate: %v", err)
 			}
 			helmMgr := helm.New(cfg.KubeconfigFile())
-			err = helmMgr.RunInstall(helm.WithName("dvorah"), helm.WithNamespace(namespace), helm.WithReleaseName("dvorah"), helm.WithChart("charts/dvorah"), helm.WithArgs("--set", "image.repository=betorvs/dvorah", "--set", "image.tag="+version, "--set", "args.policyConfig=true", "--set", "env.enabled=true", "--set", "validatingWebhook.caBundle="+string(caBundle)))
+			err = helmMgr.RunInstall(helm.WithName("dvorah"), helm.WithNamespace(namespace), helm.WithReleaseName("dvorah"), helm.WithChart("charts/dvorah"), helm.WithArgs("--set", "image.repository=betorvs/dvorah", "--set", "image.tag="+version, "--set", "image.pullPolicy=IfNotPresent", "--set", "args.policyConfig=true", "--set", "env.enabled=true", "--set", "validatingWebhook.caBundle="+string(caBundle)))
 			// err = helmMgr.RunInstall(helm.WithName("auror"), helm.WithNamespace(namespace), helm.WithReleaseName("auror"), helm.WithChart("charts/auror"), helm.WithArgs("-f", "values.kind.yaml", "--set", "image.tag="+version, "--set", "mutatingWebhook.caBundle="+string(caBundle)))
 			if err != nil {
 				t.Fatalf("Failed to install dvorah helm chart: %v", err)

@@ -3,6 +3,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "dvorah.fullname" . }}
+  namespace: {{ .Release.Namespace | default "dvorah" }}
   labels:
     {{- include "dvorah.labels" . | nindent 4 }}
 spec:
