@@ -51,3 +51,5 @@ jobs:
           # This will add both a CLI output to the console and create a results.sarif file
           output_format: cli
           output_file_path: console
+        env:
+          HELM_NAMESPACE: dvorah
